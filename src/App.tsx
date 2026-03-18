@@ -230,29 +230,29 @@ export default function App() {
   const tabs = ['#0', '#1', '#2', '#3', '#4', '#5', '#6', '#7', '#8', '#9'];
 
   return (
-    <div className="relative flex h-screen w-full overflow-hidden bg-[#F5F2ED]">
+    <div className="relative flex h-[100dvh] w-full overflow-hidden bg-[#F5F2ED]">
       {/* Header & Tabs Selector */}
       <div className="absolute top-0 left-0 right-0 z-20 p-4 flex flex-col gap-4 pointer-events-none">
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-4">
           <header 
             onClick={() => setIsEditingInfo(true)}
-            className="pointer-events-auto bg-[#F5F2ED]/80 backdrop-blur-md p-4 rounded-2xl border border-[#5A5A40]/10 shadow-sm cursor-pointer hover:bg-[#F5F2ED] transition-all group flex items-center"
+            className="pointer-events-auto bg-[#F5F2ED]/80 backdrop-blur-md p-4 rounded-2xl border border-[#5A5A40]/10 shadow-sm cursor-pointer hover:bg-[#F5F2ED] transition-all group flex items-center w-full md:w-auto"
           >
             <div className="flex flex-col">
               <span className="text-[9px] uppercase tracking-[0.3em] text-[#5A5A40] font-bold opacity-80">Yoga Sequence Architect</span>
               <div className="flex flex-col">
-                <h1 className="uppercase font-sans text-3xl font-bold text-[#1A1A1A] leading-tight">
+                <h1 className="uppercase font-sans text-2xl md:text-3xl font-bold text-[#1A1A1A] leading-tight">
                   {sequence.title || 'Yoga Sequence'}#{parseInt(selectedId.replace('#', ''))}
                 </h1>
-                <p className="font-sans text-sm text-[#5A5A40] font-medium tracking-wide">
+                <p className="font-sans text-xs md:text-sm text-[#5A5A40] font-medium tracking-wide">
                   {sequence.description}
                 </p>
               </div>
             </div>
           </header>
 
-          <div className="flex flex-col items-end gap-3">
-            <div className="pointer-events-auto flex items-center gap-1 bg-white/80 backdrop-blur-md p-1.5 rounded-2xl border border-[#5A5A40]/10 shadow-lg overflow-x-auto max-w-[600px] custom-scrollbar">
+          <div className="flex flex-col items-end gap-3 w-full md:w-auto">
+            <div className="pointer-events-auto flex items-center gap-1 bg-white/80 backdrop-blur-md p-1.5 rounded-2xl border border-[#5A5A40]/10 shadow-lg overflow-x-auto w-full md:max-w-[600px] custom-scrollbar">
                 <button
                   onClick={handleCopyJson}
                   className="px-3 py-1.5 bg-[#F5F2ED] hover:bg-white rounded-xl border border-[#5A5A40]/10 text-[#5A5A40] transition-all flex items-center gap-2 shadow-sm active:scale-95 mr-1 shrink-0"
@@ -288,12 +288,33 @@ export default function App() {
               })}
             </div>
 
+            <div className="pointer-events-auto flex bg-white/80 backdrop-blur-md p-1 rounded-xl border border-[#5A5A40]/10 shadow-lg">
+              <button 
+                onClick={() => setView('mindmap')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 ${
+                  view === 'mindmap' ? 'bg-[#5A5A40] text-white shadow-md' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
+                }`}
+              >
+                <MapIcon size={14} />
+                MindMap
+              </button>
+              <button 
+                onClick={() => setView('timeline')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 ${
+                  view === 'timeline' ? 'bg-[#5A5A40] text-white shadow-md' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
+                }`}
+              >
+                <Timer size={14} />
+                Timeline
+              </button>
+            </div>
+
             {view === 'timeline' && (
-              <div className="pointer-events-auto flex items-center gap-4 backdrop-blur-md px-4 py-2 mr-14 mt-6 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+              <div className="pointer-events-auto flex items-center gap-4 backdrop-blur-md px-4 py-2 rounded-2xl animate-in slide-in-from-top-2 duration-300">
                 <div className="flex items-center gap-3 pr-4 border-r border-[#5A5A40]/10">
-                  <span className="text-[11px] font-black text-[#1A1A1A] uppercase tracking-tight">Sequence Timeline</span>
+                  <span className="text-[11px] font-black text-[#1A1A1A] uppercase tracking-tight">Timeline</span>
                   <span className="text-[#5A5A40] text-[10px] font-bold uppercase tracking-[0.1em] opacity-60">
-                    {formatTime(stats.duration)} • {stats.count} Items
+                    {formatTime(stats.duration)}
                   </span>
                 </div>
 
@@ -307,9 +328,9 @@ export default function App() {
                         handleAddNode(sequence.id);
                       }
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#5A5A40] text-white rounded-xl text-[11px] font-bold hover:bg-[#4A4A30] active:scale-95 shadow-md"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-[#5A5A40] text-white rounded-xl text-[10px] font-bold hover:bg-[#4A4A30] active:scale-95 shadow-md"
                   >
-                    <Plus size={14} />
+                    <Plus size={12} />
                   </button>
                 </div>
               </div>
@@ -367,27 +388,7 @@ export default function App() {
           </div>
         )}
 
-        {/* View Toggle */}
-        <div className="absolute bottom-4 right-4 flex bg-white/80 backdrop-blur-md p-1 rounded-xl border border-[#5A5A40]/10 shadow-lg">
-          <button 
-            onClick={() => setView('mindmap')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-              view === 'mindmap' ? 'bg-[#5A5A40] text-white shadow-lg' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
-            }`}
-          >
-            <MapIcon size={16} />
-            MindMap
-          </button>
-          <button 
-            onClick={() => setView('timeline')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-              view === 'timeline' ? 'bg-[#5A5A40] text-white shadow-lg' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
-            }`}
-          >
-            <Timer size={16} />
-            Timeline
-          </button>
-        </div>
+        {/* View Toggle - Removed from bottom as it's now at the top */}
       </main>
 
       {/* Delete Confirmation Modal */}
