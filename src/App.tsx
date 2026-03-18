@@ -235,11 +235,11 @@ export default function App() {
     <div className="relative flex h-[100dvh] w-full overflow-hidden bg-[#F5F2ED]">
       {/* Header & Tabs Selector */}
       <div className="absolute top-0 left-0 right-0 z-20 p-2 md:p-4 flex flex-col gap-4 pointer-events-none">
-        <div className="flex flex-row justify-between items-start gap-4">
-          <header className="pointer-events-auto bg-[#F5F2ED]/80 backdrop-blur-md p-3 md:p-5 rounded-2xl border border-[#5A5A40]/10 shadow-sm cursor-pointer hover:bg-[#F5F2ED] transition-all group flex items-center w-full md:w-auto"          >
-            <div className="flex flex-col">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-1 md:gap-4">
+          <header className="pointer-events-auto bg-[#F5F2ED]/80 backdrop-blur-md p-3 md:p-5 rounded-2xl border border-[#5A5A40]/10 shadow-sm cursor-pointer hover:bg-[#F5F2ED] transition-all group flex items-center w-full md:w-auto">
+            <div className="flex flex-col w-full">
               <span className="text-[9px] uppercase tracking-[0.3em] text-[#5A5A40] font-bold opacity-80">Yoga Sequence Architect</span>
-              <div className="flex flex-col"
+              <div className="flex flex-row md:flex-col items-center justify-between w-full"
                 onClick={() => setIsEditingInfo(true)}
               >
                 <h1 className="uppercase font-sans text-2xl md:text-3xl font-bold text-[#1A1A1A] leading-tight">
@@ -249,7 +249,7 @@ export default function App() {
                   {sequence.description}
                 </p>
               </div>
-              <div className="pointer-events-auto flex bg-white/80 backdrop-blur-md p-1 mt-2 rounded-xl border border-[#5A5A40]/10 shadow-lg mt-1">
+              <div className="pointer-events-auto flex justify-center bg-white/80 backdrop-blur-md p-1 mt-2 rounded-xl border border-[#5A5A40]/10 shadow-lg mt-1 w-full">
                 <button
                   onClick={() => setView('mindmap')}
                   className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 ${view === 'mindmap' ? 'bg-[#5A5A40] text-white shadow-md' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'

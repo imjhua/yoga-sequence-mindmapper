@@ -284,7 +284,7 @@ const Timeline: React.FC<TimelineProps> = ({
   }, [data]);
 
   return (
-    <div className="w-full h-full bg-[#F5F2ED] overflow-y-auto p-2 pt-40 md:pt-42">
+    <div className="w-full h-full bg-[#F5F2ED] overflow-y-auto p-2 pt-46 md:pt-42">
       <div className="max-w-3xl mx-auto mt-4 pb-40">
         <div className="relative">
           {/* Vertical Line */}
