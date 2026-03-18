@@ -44,7 +44,7 @@ const TimelineItem: React.FC<{
   handleDurationKeyDown, formatTime
 }) => {
   const controls = useDragControls();
-  const indent = Math.max(0, (depth - 2) * 24);
+  const indent = Math.max(0, (depth - 2) * (window.innerWidth < 640 ? 12 : 24));
 
   const sortedChildren = useMemo(() => {
     return [...(node.children || [])].sort((a, b) => (a.priority || 0) - (b.priority || 0));
@@ -65,28 +65,28 @@ const TimelineItem: React.FC<{
     >
       <div className="flex flex-col">
         <div 
-          className="flex items-center gap-4 w-full group"
+          className="flex items-center gap-2 sm:gap-4 w-full group"
           style={{ paddingLeft: `${indent}px` }}
         >
           {/* Marker & Drag Handle */}
-          <div className="relative z-10 flex items-center gap-2">
-            <div 
-              className="opacity-0 group-hover:opacity-40 cursor-grab active:cursor-grabbing text-[#5A5A40] p-1"
-              onPointerDown={(e) => controls.start(e)}
-              style={{ touchAction: 'none' }}
-            >
-              <GripVertical size={14} />
+          <div 
+            className="relative z-10 flex items-center gap-1 sm:gap-2 cursor-grab active:cursor-grabbing"
+            onPointerDown={(e) => controls.start(e)}
+            style={{ touchAction: 'none' }}
+          >
+            <div className="opacity-0 group-hover:opacity-40 text-[#5A5A40] p-1">
+              <GripVertical size={12} className="sm:w-[14px] sm:h-[14px]" />
             </div>
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm ${
+            <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shadow-sm transition-transform active:scale-95 ${
               depth === 2 ? 'bg-[#5A5A40] text-white' : 'bg-white text-[#5A5A40] border border-[#5A5A40]/10'
             }`}>
-              <span className="text-xs font-bold">{index}</span>
+              <span className="text-[10px] sm:text-xs font-bold">{index}</span>
             </div>
           </div>
 
           {/* Content */}
           <div 
-            className={`flex-1 px-3 py-2 rounded-xl shadow-sm border flex items-center justify-between gap-4 ${
+            className={`flex-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl shadow-sm border flex items-center justify-between gap-2 sm:gap-4 ${
               depth === 2 ? 'bg-white border-[#5A5A40]/20 shadow-md' : 'bg-white/50 border-[#5A5A40]/5 hover:border-[#5A5A40]/20'
             }`}
           >
@@ -100,12 +100,12 @@ const TimelineItem: React.FC<{
                     onChange={(e) => setTempValue(e.target.value)}
                     onBlur={handleFieldSubmit}
                     onKeyDown={handleFieldKeyDown}
-                    className="w-full text-sm font-bold text-[#1A1A1A] bg-[#F5F2ED] border-none outline-none rounded px-1"
+                    className="w-full text-xs sm:text-sm font-bold text-[#1A1A1A] bg-[#F5F2ED] border-none outline-none rounded px-1"
                   />
                 ) : (
                   <h3 
                     onClick={(e) => handleFieldClick(e, node, 'name')}
-                    className={`text-sm font-bold text-[#1A1A1A] truncate hover:bg-[#F5F2ED] rounded px-1 cursor-text ${depth === 2 ? 'text-base' : ''}`}
+                    className={`text-xs sm:text-sm font-bold text-[#1A1A1A] truncate hover:bg-[#F5F2ED] rounded px-1 cursor-text ${depth === 2 ? 'text-sm sm:text-base' : ''}`}
                   >
                     {node.name}
                   </h3>
@@ -120,44 +120,44 @@ const TimelineItem: React.FC<{
                   onChange={(e) => setTempValue(e.target.value)}
                   onBlur={handleFieldSubmit}
                   onKeyDown={handleFieldKeyDown}
-                  className="w-full text-[10px] text-[#1A1A1A]/60 bg-[#F5F2ED] border-none outline-none rounded px-1 mt-1"
+                  className="w-full text-[9px] sm:text-[10px] text-[#1A1A1A]/60 bg-[#F5F2ED] border-none outline-none rounded px-1 mt-1"
                 />
               ) : (
                 <p 
                   onClick={(e) => handleFieldClick(e, node, 'description')}
-                  className="text-[10px] text-[#1A1A1A]/60 line-clamp-1 rounded px-1 cursor-text mt-0.5"
+                  className="text-[9px] sm:text-[10px] text-[#1A1A1A]/60 line-clamp-1 rounded px-1 cursor-text mt-0.5"
                 >
                   {node.description || '설명을 입력하세요...'}
                 </p>
               )}
             </div>
             
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              <div className="flex items-center gap-0.5 sm:gap-1 opacity-0 group-hover:opacity-100">
                 <button 
                   onClick={(e) => { e.stopPropagation(); onAdd(node.id); }}
-                  className="p-1.5 hover:bg-[#F5F2ED] text-[#5A5A40] rounded-md"
+                  className="p-1 sm:p-1.5 hover:bg-[#F5F2ED] text-[#5A5A40] rounded-md"
                   title="Add Child Pose"
                 >
-                  <Plus size={14} />
+                  <Plus size={12} className="sm:w-[14px] sm:h-[14px]" />
                 </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); onDelete(node.id); }}
-                  className="p-1.5 hover:bg-red-50 text-red-500 rounded-md"
+                  className="p-1 sm:p-1.5 hover:bg-red-50 text-red-500 rounded-md"
                   title="Delete Pose"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={12} className="sm:w-[14px] sm:h-[14px]" />
                 </button>
               </div>
 
               <div 
-                className="flex items-center gap-1 text-[#5A5A40] bg-[#F5F2ED] px-2 py-0.5 rounded-md text-[9px] font-bold min-w-[45px] justify-center cursor-text"
+                className="flex items-center gap-1 text-[#5A5A40] bg-[#F5F2ED] px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md text-[8px] sm:text-[9px] font-bold min-w-[35px] sm:min-w-[45px] justify-center cursor-text"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDurationClick(node);
                 }}
               >
-                <Timer size={10} />
+                <Timer size={8} className="sm:w-[10px] sm:h-[10px]" />
                 {editingDurationId === node.id ? (
                   <input
                     autoFocus
@@ -168,7 +168,7 @@ const TimelineItem: React.FC<{
                     onBlur={() => handleDurationSubmit(node.id)}
                     onKeyDown={(e) => handleDurationKeyDown(e, node.id)}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-10 bg-transparent border-none outline-none text-center p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    className="w-8 sm:w-10 bg-transparent border-none outline-none text-center p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 ) : (
                   <span>{formatTime(node.duration || 0)}</span>
@@ -284,11 +284,11 @@ const Timeline: React.FC<TimelineProps> = ({
   }, [data]);
 
   return (
-    <div className="w-full h-full bg-[#F5F2ED] overflow-y-auto p-4 pt-32">
+    <div className="w-full h-full bg-[#F5F2ED] overflow-y-auto p-2 pt-40 md:pt-42">
       <div className="max-w-3xl mx-auto mt-4 pb-40">
         <div className="relative">
           {/* Vertical Line */}
-          <div className="absolute left-4 top-0 bottom-0 w-px bg-[#5A5A40]/10 z-0" />
+          <div className="absolute left-3 sm:left-4 top-0 bottom-0 w-px bg-[#5A5A40]/10 z-0" />
 
           <Reorder.Group 
             axis="y" 
@@ -297,7 +297,7 @@ const Timeline: React.FC<TimelineProps> = ({
               const newOrder = newIds.map(id => allAsanas.find(a => a.id === id)!);
               onReorder(newOrder);
             }}
-            className="space-y-4 pb-40"
+            className="space-y-2 sm:space-y-4 pb-40"
           >
             {allAsanas.map((child, idx) => (
               <TimelineItem 

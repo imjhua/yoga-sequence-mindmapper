@@ -39,7 +39,7 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('lastSelectedSequenceId', selectedId);
   }, [selectedId]);
-  
+
   const sequence = allSequences[selectedId];
 
   const setSequence = useCallback((update: YogaPose | ((prev: YogaPose) => YogaPose)) => {
@@ -70,7 +70,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: selectedId, data: sequence }),
       });
-      
+
       if (response.ok) {
         alert('성공적으로 저장되었습니다!');
       } else {
@@ -108,7 +108,7 @@ export default function App() {
 
   const handleAddNode = useCallback((parentId: string) => {
     const parentNode = findNodeById(sequence, parentId);
-    
+
     const newNode: YogaPose = {
       id: `node-${Date.now()}`,
       name: '새로운 자세',
@@ -126,13 +126,13 @@ export default function App() {
 
   const handleDeleteNode = useCallback((id: string) => {
     if (id === sequence.id) return;
-    
+
     const nodeToDelete = findNodeById(sequence, id);
     if (!nodeToDelete) return;
 
     // Check if node has "additional information"
-    const hasInfo = 
-      (nodeToDelete.name !== '새로운 자세') || 
+    const hasInfo =
+      (nodeToDelete.name !== '새로운 자세') ||
       (nodeToDelete.description !== '') ||
       (nodeToDelete.tips && nodeToDelete.tips.length > 0) ||
       (nodeToDelete.children && nodeToDelete.children.length > 0);
@@ -168,7 +168,7 @@ export default function App() {
   const handleReorder = useCallback((newPoses: YogaPose[]) => {
     setSequence(prev => {
       const priorityMap = new Map(newPoses.map((p, i) => [p.id, (i + 1) * 10]));
-      
+
       const updateTree = (node: YogaPose): YogaPose => {
         let newNode = { ...node };
         if (priorityMap.has(node.id)) {
@@ -199,7 +199,7 @@ export default function App() {
       setReparentingNodeId(null);
       return;
     }
-    
+
     // Check if targetParentId is a descendant of nodeId to prevent cycles
     const nodeToMove = findNodeById(sequence, nodeId);
     if (nodeToMove) {
@@ -229,18 +229,19 @@ export default function App() {
 
   const tabs = ['#0', '#1', '#2', '#3', '#4', '#5', '#6', '#7', '#8', '#9'];
 
+  // <div className="flex flex-row justify-between items-start gap-2">
+
   return (
     <div className="relative flex h-[100dvh] w-full overflow-hidden bg-[#F5F2ED]">
       {/* Header & Tabs Selector */}
-      <div className="absolute top-0 left-0 right-0 z-20 p-4 flex flex-col gap-4 pointer-events-none">
-        <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-          <header 
-            onClick={() => setIsEditingInfo(true)}
-            className="pointer-events-auto bg-[#F5F2ED]/80 backdrop-blur-md p-4 rounded-2xl border border-[#5A5A40]/10 shadow-sm cursor-pointer hover:bg-[#F5F2ED] transition-all group flex items-center w-full md:w-auto"
-          >
+      <div className="absolute top-0 left-0 right-0 z-20 p-2 md:p-4 flex flex-col gap-4 pointer-events-none">
+        <div className="flex flex-row justify-between items-start gap-4">
+          <header className="pointer-events-auto bg-[#F5F2ED]/80 backdrop-blur-md p-3 md:p-5 rounded-2xl border border-[#5A5A40]/10 shadow-sm cursor-pointer hover:bg-[#F5F2ED] transition-all group flex items-center w-full md:w-auto"          >
             <div className="flex flex-col">
               <span className="text-[9px] uppercase tracking-[0.3em] text-[#5A5A40] font-bold opacity-80">Yoga Sequence Architect</span>
-              <div className="flex flex-col">
+              <div className="flex flex-col"
+                onClick={() => setIsEditingInfo(true)}
+              >
                 <h1 className="uppercase font-sans text-2xl md:text-3xl font-bold text-[#1A1A1A] leading-tight">
                   {sequence.title || 'Yoga Sequence'}#{parseInt(selectedId.replace('#', ''))}
                 </h1>
@@ -248,27 +249,29 @@ export default function App() {
                   {sequence.description}
                 </p>
               </div>
+              <div className="pointer-events-auto flex bg-white/80 backdrop-blur-md p-1 mt-2 rounded-xl border border-[#5A5A40]/10 shadow-lg mt-1">
+                <button
+                  onClick={() => setView('mindmap')}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 ${view === 'mindmap' ? 'bg-[#5A5A40] text-white shadow-md' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
+                    }`}
+                >
+                  <MapIcon size={14} />
+                  MindMap
+                </button>
+                <button
+                  onClick={() => setView('timeline')}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 ${view === 'timeline' ? 'bg-[#5A5A40] text-white shadow-md' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
+                    }`}
+                >
+                  <Timer size={14} />
+                  Timeline
+                </button>
+              </div>
             </div>
           </header>
 
           <div className="flex flex-col items-end gap-3 w-full md:w-auto">
             <div className="pointer-events-auto flex items-center gap-1 bg-white/80 backdrop-blur-md p-1.5 rounded-2xl border border-[#5A5A40]/10 shadow-lg overflow-x-auto w-full md:max-w-[600px] custom-scrollbar">
-                <button
-                  onClick={handleCopyJson}
-                  className="px-3 py-1.5 bg-[#F5F2ED] hover:bg-white rounded-xl border border-[#5A5A40]/10 text-[#5A5A40] transition-all flex items-center gap-2 shadow-sm active:scale-95 mr-1 shrink-0"
-                  title="Copy JSON"
-                >
-                  <span className="text-[10px] font-bold uppercase tracking-wider">{copied ? 'Copied!' : 'JSON'}</span>
-                </button>
-                <button
-                  onClick={handleSaveToFile}
-                  disabled={isSaving}
-                  className="px-3 py-1.5 bg-[#5A5A40] hover:bg-[#4A4A30] disabled:opacity-50 rounded-xl border border-[#5A5A40]/10 text-white transition-all flex items-center gap-2 shadow-sm active:scale-95 mr-1 shrink-0"
-                  title="Save to File"
-                >
-                  <Save size={14} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">{isSaving ? 'Saving...' : 'Save'}</span>
-                </button>
               {tabs.map(id => {
                 const seq = allSequences[id];
                 const displayLabel = seq.title ? `${seq.title}${id}` : id;
@@ -276,11 +279,10 @@ export default function App() {
                   <button
                     key={id}
                     onClick={() => setSelectedId(id)}
-                    className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all whitespace-nowrap ${
-                      selectedId === id 
-                        ? 'bg-[#5A5A40] text-white shadow-md' 
-                        : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all whitespace-nowrap ${selectedId === id
+                      ? 'bg-[#5A5A40] text-white shadow-md'
+                      : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
+                      }`}
                   >
                     {displayLabel}
                   </button>
@@ -288,32 +290,11 @@ export default function App() {
               })}
             </div>
 
-            <div className="pointer-events-auto flex bg-white/80 backdrop-blur-md p-1 rounded-xl border border-[#5A5A40]/10 shadow-lg">
-              <button 
-                onClick={() => setView('mindmap')}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 ${
-                  view === 'mindmap' ? 'bg-[#5A5A40] text-white shadow-md' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
-                }`}
-              >
-                <MapIcon size={14} />
-                MindMap
-              </button>
-              <button 
-                onClick={() => setView('timeline')}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 ${
-                  view === 'timeline' ? 'bg-[#5A5A40] text-white shadow-md' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
-                }`}
-              >
-                <Timer size={14} />
-                Timeline
-              </button>
-            </div>
-
-            {view === 'timeline' && (
-              <div className="pointer-events-auto flex items-center gap-4 backdrop-blur-md px-4 py-2 rounded-2xl animate-in slide-in-from-top-2 duration-300">
-                <div className="flex items-center gap-3 pr-4 border-r border-[#5A5A40]/10">
-                  <span className="text-[11px] font-black text-[#1A1A1A] uppercase tracking-tight">Timeline</span>
-                  <span className="text-[#5A5A40] text-[10px] font-bold uppercase tracking-[0.1em] opacity-60">
+            {/* {view === 'timeline' && (
+              <div className="pointer-events-auto flex items-center gap-2 sm:gap-4 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl animate-in slide-in-from-top-2 duration-300 bg-white/40 border border-[#5A5A40]/5">
+                <div className="flex items-center gap-2 sm:gap-3 pr-2 sm:pr-4 border-r border-[#5A5A40]/10">
+                  <span className="text-[10px] sm:text-[11px] font-black text-[#1A1A1A] uppercase tracking-tight">Timeline</span>
+                  <span className="text-[#5A5A40] text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.1em] opacity-60">
                     {formatTime(stats.duration)}
                   </span>
                 </div>
@@ -328,13 +309,13 @@ export default function App() {
                         handleAddNode(sequence.id);
                       }
                     }}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-[#5A5A40] text-white rounded-xl text-[10px] font-bold hover:bg-[#4A4A30] active:scale-95 shadow-md"
+                    className="flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-1.5 bg-[#5A5A40] text-white rounded-xl text-[9px] sm:text-[10px] font-bold hover:bg-[#4A4A30] active:scale-95 shadow-md"
                   >
-                    <Plus size={12} />
+                    <Plus size={10} className="sm:w-[12px] sm:h-[12px]" />
                   </button>
                 </div>
               </div>
-            )}
+            )} */}
           </div>
         </div>
       </div>
@@ -342,8 +323,8 @@ export default function App() {
       {/* Main MindMap Area */}
       <main className="flex-1 relative">
         {view === 'mindmap' ? (
-          <MindMap 
-            data={sequence} 
+          <MindMap
+            data={sequence}
             onEdit={setEditingPose}
             onAdd={handleAddNode}
             onDelete={handleDeleteNode}
@@ -357,8 +338,8 @@ export default function App() {
             onMoveNode={handleMoveNode}
           />
         ) : (
-          <Timeline 
-            data={sequence} 
+          <Timeline
+            data={sequence}
             onEdit={setEditingPose}
             onAdd={handleAddNode}
             onDelete={handleDeleteNode}
@@ -369,10 +350,10 @@ export default function App() {
             copied={copied}
           />
         )}
-        
+
         {/* Legend */}
         {view === 'mindmap' && (
-          <div className="absolute bottom-4 left-4 flex flex-col gap-2 bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-[#5A5A40]/10 shadow-lg">
+          <div className="absolute bottom-4 left-4 flex flex-col gap-2 bg-white/80 backdrop-blur-md p-2 md:p-4 rounded-2xl border border-[#5A5A40]/10 shadow-lg">
             <div className="flex items-center gap-2 text-[10px] text-[#1A1A1A] font-medium">
               <div className="w-3 h-3 rounded-full bg-[#5A5A40]" />
               <span>Peak Pose</span>
@@ -385,6 +366,26 @@ export default function App() {
               <div className="w-3 h-3 rounded-full bg-white border border-[#D1D1D1]" />
               <span>Asana</span>
             </div>
+
+            <div className="flex items-center gap-2 md:mt-2">
+              <button
+                onClick={handleCopyJson}
+                className="px-3 py-1.5 bg-[#F5F2ED] hover:bg-white rounded-xl border border-[#5A5A40]/10 text-[#5A5A40] transition-all flex items-center gap-2 shadow-sm active:scale-95 mr-1 shrink-0"
+                title="Copy JSON"
+              >
+                <span className="text-[10px] font-bold uppercase tracking-wider">{copied ? 'Copied!' : 'JSON'}</span>
+              </button>
+              <button
+                onClick={handleSaveToFile}
+                disabled={isSaving}
+                // className="px-3 py-1.5 bg-[#F5F2ED] hover:bg-[#4A4A30] disabled:opacity-50 rounded-xl border border-[#5A5A40]/10 text-[#5A5A40] transition-all flex items-center gap-2 shadow-sm active:scale-95 mr-1 shrink-0"
+                className="px-3 py-1.5 bg-[#F5F2ED] hover:bg-white rounded-xl border border-[#5A5A40]/10 text-[#5A5A40] transition-all flex items-center gap-2 shadow-sm active:scale-95 mr-1 shrink-0"
+                title="Save to File"
+              >
+                <Save size={14} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">{isSaving ? 'Saving...' : 'Save'}</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -394,7 +395,7 @@ export default function App() {
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {deletingId && (
-          <div 
+          <div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1A1A1A]/40 backdrop-blur-sm p-4"
             onClick={() => setDeletingId(null)}
           >
@@ -413,13 +414,13 @@ export default function App() {
                 '{findNodeById(sequence, deletingId)?.name}' 노드에 입력된 정보가 있습니다. 삭제하면 복구할 수 없습니다.
               </p>
               <div className="flex gap-2">
-                <button 
+                <button
                   onClick={() => setDeletingId(null)}
                   className="flex-1 px-4 py-2 rounded-xl text-[11px] font-bold text-[#5A5A40] bg-[#F5F2ED] hover:bg-[#EBE8E2] transition-colors"
                 >
                   취소
                 </button>
-                <button 
+                <button
                   onClick={confirmDelete}
                   className="flex-1 px-4 py-2 rounded-xl text-[11px] font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
                 >
@@ -434,7 +435,7 @@ export default function App() {
       {/* Edit Modal */}
       <AnimatePresence>
         {isEditingInfo && (
-          <div 
+          <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A1A]/40 backdrop-blur-sm p-4"
             onClick={() => setIsEditingInfo(false)}
           >
@@ -492,7 +493,7 @@ export default function App() {
         )}
 
         {editingPose && (
-          <div 
+          <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-[#1A1A1A]/40 backdrop-blur-sm p-4"
             onClick={() => setEditingPose(null)}
           >
@@ -574,7 +575,6 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
-
     </div>
   );
 }
