@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Target, Sparkles, Map as MapIcon, Save, Timer, Code, LayoutGrid, Plus, Edit3 } from 'lucide-react';
 import MindMap from './components/MindMap';
 import Timeline from './components/Timeline';
-import { YogaPose, updateNodeInTree, addNodeToTree, deleteNodeFromTree, findNodeById, moveNodeInTree, formatTime, getSequenceStats } from './types';
+import FAQ from './components/Memo';
+import { YogaPose, FAQItem, updateNodeInTree, addNodeToTree, deleteNodeFromTree, findNodeById, moveNodeInTree, formatTime, getSequenceStats } from './types';
 
 // Import all 10 sequences
 import seq0 from './data/seq0.json';
@@ -16,6 +17,7 @@ import seq6 from './data/seq6.json';
 import seq7 from './data/seq7.json';
 import seq8 from './data/seq8.json';
 import seq9 from './data/seq9.json';
+import faqInitialData from './data/faq.json';
 
 const initialData: Record<string, YogaPose> = {
   '#0': seq0 as YogaPose,
@@ -61,6 +63,51 @@ export default function App() {
   const [reparentingNodeId, setReparentingNodeId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [faqItems, setFaqItems] = useState<FAQItem[]>(faqInitialData as FAQItem[]);
+  const [faqSaving, setFaqSaving] = useState(false);
+  const [faqLoaded, setFaqLoaded] = useState(false);
+
+  // Load FAQ from file on app startup (once)
+  useEffect(() => {
+    const loadFAQ = async () => {
+      try {
+        const response = await fetch('/api/load-faq');
+        if (response.ok) {
+          const data = await response.json();
+          setFaqItems(data || []);
+        }
+      } catch (error) {
+        console.error('Error loading FAQ:', error);
+      } finally {
+        setFaqLoaded(true);
+      }
+    };
+    loadFAQ();
+  }, []);
+
+  // Save FAQ to file whenever it changes
+  useEffect(() => {
+    if (!faqLoaded) return; // Skip saving on initial load
+    
+    const saveFAQ = async () => {
+      setFaqSaving(true);
+      try {
+        const response = await fetch('/api/save-faq', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(faqItems),
+        });
+        if (!response.ok) {
+          console.error('FAQ save error:', await response.json());
+        }
+      } catch (error) {
+        console.error('FAQ save error:', error);
+      } finally {
+        setFaqSaving(false);
+      }
+    };
+    saveFAQ();
+  }, [faqItems, faqLoaded]);
 
   const handleSaveToFile = useCallback(async () => {
     setIsSaving(true);
@@ -239,20 +286,20 @@ export default function App() {
           <header className="pointer-events-auto bg-[#F5F2ED]/80 backdrop-blur-md p-3 md:p-5 rounded-2xl border border-[#5A5A40]/10 shadow-sm cursor-pointer hover:bg-[#F5F2ED] transition-all group flex items-center w-full md:w-auto">
             <div className="flex flex-col w-full">
               <span className="text-[9px] uppercase tracking-[0.3em] text-[#5A5A40] font-bold opacity-80">Yoga Sequence Architect</span>
-              <div className="flex flex-row md:flex-col items-center justify-between w-full"
+              <div className="flex flex-col items-center justify-between w-full gap-2"
                 onClick={() => setIsEditingInfo(true)}
               >
                 <h1 className="uppercase font-sans text-2xl md:text-3xl font-bold text-[#1A1A1A] leading-tight">
                   {sequence.title || 'Yoga Sequence'}#{parseInt(selectedId.replace('#', ''))}
                 </h1>
-                <p className="font-sans text-xs md:text-sm text-[#5A5A40] font-medium tracking-wide">
+                <div className="font-sans text-xs md:text-sm text-[#5A5A40] font-medium tracking-wide">
                   {sequence.description}
-                </p>
+                </div>
               </div>
               <div className="pointer-events-auto flex justify-center bg-white/80 backdrop-blur-md p-1 mt-2 rounded-xl border border-[#5A5A40]/10 shadow-lg mt-1 w-full">
                 <button
                   onClick={() => setView('mindmap')}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 ${view === 'mindmap' ? 'bg-[#5A5A40] text-white shadow-md' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex flex-1 items-center justify-center gap-2 ${view === 'mindmap' ? 'bg-[#5A5A40] text-white shadow-md' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
                     }`}
                 >
                   <MapIcon size={14} />
@@ -260,7 +307,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setView('timeline')}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-2 ${view === 'timeline' ? 'bg-[#5A5A40] text-white shadow-md' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex flex-1 items-center justify-center gap-2 ${view === 'timeline' ? 'bg-[#5A5A40] text-white shadow-md' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
                     }`}
                 >
                   <Timer size={14} />
@@ -320,7 +367,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Main MindMap Area */}
+      {/* Main Content Area */}
       <main className="flex-1 relative">
         {view === 'mindmap' ? (
           <MindMap
@@ -351,45 +398,30 @@ export default function App() {
           />
         )}
 
-        {/* Legend */}
-        {view === 'mindmap' && (
-          <div className="absolute bottom-4 left-4 flex flex-col gap-2 bg-white/80 backdrop-blur-md p-2 md:p-4 rounded-2xl border border-[#5A5A40]/10 shadow-lg">
-            <div className="flex items-center gap-2 text-[10px] text-[#1A1A1A] font-medium">
-              <div className="w-3 h-3 rounded-full bg-[#5A5A40]" />
-              <span>Peak Pose</span>
-            </div>
-            <div className="flex items-center gap-2 text-[10px] text-[#1A1A1A] font-medium">
-              <div className="w-3 h-3 rounded-full bg-[#EBE8E2] border border-[#5A5A40]/30" />
-              <span>Sequence Step</span>
-            </div>
-            <div className="flex items-center gap-2 text-[10px] text-[#1A1A1A] font-medium">
-              <div className="w-3 h-3 rounded-full bg-white border border-[#D1D1D1]" />
-              <span>Asana</span>
-            </div>
-
-            <div className="flex items-center gap-2 md:mt-2">
-              <button
-                onClick={handleCopyJson}
-                className="px-3 py-1.5 bg-[#F5F2ED] hover:bg-white rounded-xl border border-[#5A5A40]/10 text-[#5A5A40] transition-all flex items-center gap-2 shadow-sm active:scale-95 mr-1 shrink-0"
-                title="Copy JSON"
-              >
-                <span className="text-[10px] font-bold uppercase tracking-wider">{copied ? 'Copied!' : 'JSON'}</span>
-              </button>
-              <button
-                onClick={handleSaveToFile}
-                disabled={isSaving}
-                // className="px-3 py-1.5 bg-[#F5F2ED] hover:bg-[#4A4A30] disabled:opacity-50 rounded-xl border border-[#5A5A40]/10 text-[#5A5A40] transition-all flex items-center gap-2 shadow-sm active:scale-95 mr-1 shrink-0"
-                className="px-3 py-1.5 bg-[#F5F2ED] hover:bg-white rounded-xl border border-[#5A5A40]/10 text-[#5A5A40] transition-all flex items-center gap-2 shadow-sm active:scale-95 mr-1 shrink-0"
-                title="Save to File"
-              >
-                <Save size={14} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">{isSaving ? 'Saving...' : 'Save'}</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* View Toggle - Removed from bottom as it's now at the top */}
+        {/* Floating Action Buttons */}
+        <div className="absolute bottom-6 left-6 z-40 flex items-center gap-3 bg-white/90 backdrop-blur-md p-3 rounded-full border border-[#5A5A40]/10 shadow-lg">
+          <motion.button
+            onClick={handleCopyJson}
+            className="px-3 py-2 bg-[#5A5A40] hover:bg-[#4A4A30] text-white rounded-full border border-[#5A5A40]/20 transition-all flex items-center gap-2 shadow-md active:scale-95"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title="Copy JSON"
+          >
+            <Code size={16} />
+            <span className="text-[11px] font-bold uppercase tracking-wider hidden sm:inline">{copied ? 'Copied!' : 'JSON'}</span>
+          </motion.button>
+          <motion.button
+            onClick={handleSaveToFile}
+            disabled={isSaving}
+            className="px-3 py-2 bg-[#5A5A40] hover:bg-[#4A4A30] disabled:opacity-50 text-white rounded-full border border-[#5A5A40]/20 transition-all flex items-center gap-2 shadow-md active:scale-95"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            title="Save to File"
+          >
+            <Save size={16} />
+            <span className="text-[11px] font-bold uppercase tracking-wider hidden sm:inline">{isSaving ? 'Saving...' : 'Save'}</span>
+          </motion.button>
+        </div>
       </main>
 
       {/* Delete Confirmation Modal */}
@@ -501,7 +533,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 10 }}
-              className="w-full max-w-[300px] bg-white border border-[#5A5A40]/10 rounded-2xl shadow-2xl overflow-hidden"
+              className="w-full max-w-[500px] bg-white border border-[#5A5A40]/10 rounded-2xl shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <form onSubmit={handleUpdateNode} className="p-4">
@@ -527,7 +559,7 @@ export default function App() {
                   <div>
                     <label className="block text-[8px] uppercase tracking-widest text-[#5A5A40]/50 mb-0.5 font-bold">Description</label>
                     <textarea
-                      rows={2}
+                      rows={6}
                       value={editingPose.description}
                       onChange={(e) => setEditingPose({ ...editingPose, description: e.target.value })}
                       placeholder="자세에 대한 설명을 입력하세요."
@@ -575,6 +607,9 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Global FAQ Panel */}
+      <FAQ faqItems={faqItems} onUpdate={setFaqItems} isSaving={faqSaving} />
     </div>
   );
 }

@@ -1,9 +1,25 @@
 {
   "id": "root",
-  "name": "피크포즈",
+  "name": "밴드 자세",
   "title": "제목 #7",
   "description": "새로운 시퀀스를 시작하세요",
-  "children": [],
+  "children": [
+    {
+      "id": "node-1774850502276",
+      "name": "테이블 포즈",
+      "description": "",
+      "duration": 0,
+      "children": [
+        {
+          "id": "node-1774850506427",
+          "name": "뒤에 무릎 내리고 등뒤 손목잡기",
+          "description": "",
+          "duration": 0,
+          "children": []
+        }
+      ]
+    }
+  ],
   "priority": 0,
   "duration": 0
 }

@@ -120,12 +120,12 @@ const TimelineItem: React.FC<{
                   onChange={(e) => setTempValue(e.target.value)}
                   onBlur={handleFieldSubmit}
                   onKeyDown={handleFieldKeyDown}
-                  className="w-full text-[9px] sm:text-[10px] text-[#1A1A1A]/60 bg-[#F5F2ED] border-none outline-none rounded px-1 mt-1"
+                  className="w-full text-xs text-[#1A1A1A]/60 bg-[#F5F2ED] border-none outline-none rounded px-1 mt-1"
                 />
               ) : (
                 <p 
                   onClick={(e) => handleFieldClick(e, node, 'description')}
-                  className="text-[9px] sm:text-[10px] text-[#1A1A1A]/60 line-clamp-1 rounded px-1 cursor-text mt-0.5"
+                  className="text-xs text-[#1A1A1A]/60 line-clamp-1 rounded px-1 cursor-text mt-0.5"
                 >
                   {node.description || '설명을 입력하세요...'}
                 </p>

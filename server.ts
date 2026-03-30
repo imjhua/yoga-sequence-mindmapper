@@ -13,6 +13,36 @@ async function startServer() {
 
   app.use(express.json({ limit: '10mb' }));
 
+  // API to load FAQ data from JSON file
+  app.get("/api/load-faq", async (req, res) => {
+    const filePath = path.join(process.cwd(), "src", "data", "faq.json");
+
+    try {
+      const data = await fs.readFile(filePath, "utf-8");
+      const faqData = JSON.parse(data);
+      res.json(faqData);
+    } catch (error) {
+      console.error(`Error loading FAQ file: ${error}`);
+      res.json([]); // Return empty array if file doesn't exist
+    }
+  });
+
+  // API to save FAQ data to JSON file
+  app.post("/api/save-faq", async (req, res) => {
+    const faqData = req.body;
+
+    const filePath = path.join(process.cwd(), "src", "data", "faq.json");
+
+    try {
+      await fs.writeFile(filePath, JSON.stringify(faqData, null, 2), "utf-8");
+      console.log(`Successfully saved ${filePath}`);
+      res.json({ success: true, message: "Saved to faq.json" });
+    } catch (error) {
+      console.error(`Error saving FAQ file: ${error}`);
+      res.status(500).json({ error: "Failed to save FAQ file" });
+    }
+  });
+
   // API to save sequence data to JSON files
   app.post("/api/save-sequence", async (req, res) => {
     const { id, data } = req.body;

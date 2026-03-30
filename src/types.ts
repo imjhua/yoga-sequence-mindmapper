@@ -5,6 +5,12 @@ export interface LayoutSettings {
   linkStyle: 'curved' | 'straight';
 }
 
+export interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
 export interface YogaPose {
   id: string;
   name: string;
