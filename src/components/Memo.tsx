@@ -62,15 +62,22 @@ const FAQ: React.FC<FAQProps> = ({ faqItems, onUpdate, isSaving = false }) => {
   return (
     <>
       {/* Floating Button */}
-      <motion.button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-[#5A5A40] hover:bg-[#4A4A30] text-white shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        title="FAQ"
-      >
-        <MessageCircle size={24} />
-      </motion.button>
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={() => setIsOpen(!isOpen)}
+            className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-[#5A5A40] hover:bg-[#4A4A30] text-white shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            title="FAQ"
+          >
+            <MessageCircle size={24} />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* FAQ Panel */}
       <AnimatePresence>

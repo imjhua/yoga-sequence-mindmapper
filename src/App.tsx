@@ -289,10 +289,10 @@ export default function App() {
               <div className="flex flex-col items-center justify-between w-full gap-2"
                 onClick={() => setIsEditingInfo(true)}
               >
-                <h1 className="uppercase font-sans text-2xl md:text-3xl font-bold text-[#1A1A1A] leading-tight">
+                <h1 className="mt-2 uppercase font-sans text-2xl md:text-3xl font-bold text-[#1A1A1A] leading-tight">
                   {sequence.title || 'Yoga Sequence'}#{parseInt(selectedId.replace('#', ''))}
                 </h1>
-                <div className="font-sans text-xs md:text-sm text-[#5A5A40] font-medium tracking-wide">
+                <div className="max-w-[500px] font-sans text-xs md:text-sm text-[#5A5A40] font-medium tracking-wide whitespace-pre-wrap">
                   {sequence.description}
                 </div>
               </div>
@@ -475,7 +475,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 10 }}
-              className="w-full max-w-[350px] bg-white border border-[#5A5A40]/10 rounded-2xl shadow-2xl overflow-hidden"
+              className="w-full max-w-[500px] bg-white border border-[#5A5A40]/10 rounded-2xl shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <form onSubmit={handleUpdateSequenceInfo} className="p-6">
