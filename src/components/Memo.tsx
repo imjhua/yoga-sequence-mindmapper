@@ -261,17 +261,13 @@ const FAQ: React.FC<FAQProps> = ({ faqItems, onUpdate, isSaving = false }) => {
                               exit={{ opacity: 0, height: 0 }}
                               className="border-t border-[#5A5A40]/10 bg-[#F5F2ED]/30 px-3 py-2"
                             >
-                              <p className="text-sm text-[#1A1A1A]/80 leading-relaxed mb-2 whitespace-pre-wrap">
+                              <p 
+                                onDoubleClick={() => handleEditFAQ(item)}
+                                className="text-sm text-[#1A1A1A]/80 leading-relaxed mb-2 whitespace-pre-wrap pb-5 cursor-text select-none hover:bg-[#5A5A40]/5 rounded px-1 py-1 transition-colors"
+                              >
                                 {item.answer}
                               </p>
                               <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleEditFAQ(item)}
-                                  className="flex-1 px-2 py-1.5 bg-white/60 hover:bg-white border border-[#5A5A40]/10 text-[#5A5A40] rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1"
-                                >
-                                  <Edit3 size={12} />
-                                  수정
-                                </button>
                                 <button
                                   onClick={() => handleDeleteFAQ(item.id)}
                                   className="flex-1 px-2 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1"

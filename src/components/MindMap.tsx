@@ -94,14 +94,22 @@ const MindMap: React.FC<MindMapProps> = ({
     // Apply persisted positions if they exist, and apply rotation
     const rotationRad = (settings.rotation * Math.PI) / 180;
     root.descendants().forEach(d => {
-      if (d.data.x !== undefined) d.x = d.data.x;
-      if (d.data.y !== undefined) d.y = d.data.y;
+      // For x (angle): use persisted value if exists, otherwise save the calculated one
+      if (d.data.x !== undefined) {
+        d.x = d.data.x;
+      } else {
+        d.data.x = d.x;  // Save the tree-calculated x for future use (preserves angles)
+      }
       
-      // If no persisted position, use the tree layout but apply the custom depth gaps
-      if (d.data.y === undefined) {
+      // For y (depth): use persisted value if exists, otherwise calculate and save
+      if (d.data.y !== undefined) {
+        d.y = d.data.y;
+      } else {
+        // Apply custom depth-based gaps
         if (d.depth === 1) d.y = 200;
         if (d.depth === 2) d.y = 340;
         if (d.depth > 2) d.y = (340 + (d.depth - 2) * 120);
+        d.data.y = d.y;  // Save the calculated y for future use (preserves depths)
       }
 
       // Apply global multipliers/offsets to EVERYONE for rendering
