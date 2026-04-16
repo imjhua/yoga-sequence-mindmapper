@@ -190,13 +190,13 @@
         },
         {
           "id": "node-1776330279879",
-          "name": "두 팔꿈치 90도",
+          "name": "두 팔꿈치를 가운데로 모으고 90도",
           "description": "",
           "duration": 0,
           "children": [
             {
               "id": "node-1776330304182",
-              "name": "팔꿈치 들고 우르드바 무카",
+              "name": "팔꿈치 얼굴높이까지 들고 우르드바 무카",
               "description": "",
               "duration": 0,
               "children": [],
