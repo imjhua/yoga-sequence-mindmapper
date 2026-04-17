@@ -284,11 +284,11 @@ const Timeline: React.FC<TimelineProps> = ({
   }, [data]);
 
   return (
-    <div className="w-full h-full bg-[#F5F2ED] overflow-y-auto p-2 pt-[230px]">
-      <div className="max-w-3xl mx-auto mt-4 pb-40">
+    <div className="w-full h-full bg-[#F5F2ED] overflow-y-auto">
+      <div className="max-w-4xl mx-auto px-3 md:px-6 py-4 pb-40">
+        {/* Vertical Timeline Line */}
         <div className="relative">
-          {/* Vertical Line */}
-          <div className="absolute left-3 sm:left-4 top-0 bottom-0 w-px bg-[#5A5A40]/10 z-0" />
+          <div className="absolute left-2.5 md:left-4 top-0 bottom-0 w-px bg-gradient-to-b from-[#5A5A40]/20 to-transparent z-0" />
 
           <Reorder.Group 
             axis="y" 
@@ -297,7 +297,7 @@ const Timeline: React.FC<TimelineProps> = ({
               const newOrder = newIds.map(id => allAsanas.find(a => a.id === id)!);
               onReorder(newOrder);
             }}
-            className="space-y-2 sm:space-y-4 pb-40"
+            className="space-y-1.5 md:space-y-2 pb-40 relative z-10"
           >
             {allAsanas.map((child, idx) => (
               <TimelineItem 

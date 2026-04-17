@@ -77,7 +77,23 @@ export default function App() {
 
   const [editingPose, setEditingPose] = useState<YogaPose | null>(null);
   const [isEditingInfo, setIsEditingInfo] = useState(false);
-  const [view, setView] = useState<'mindmap' | 'timeline'>('mindmap');
+  const [view, setView] = useState<'mindmap' | 'timeline'>(() => {
+    // 초기 뷰를 화면 크기에 따라 결정
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768 ? 'timeline' : 'mindmap';
+    }
+    return 'mindmap';
+  });
+
+  // 화면 리사이즈 감지 및 뷰 자동 변경
+  useEffect(() => {
+    const handleResize = () => {
+      setView(() => window.innerWidth < 768 ? 'timeline' : 'mindmap');
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [reparentingNodeId, setReparentingNodeId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -115,6 +131,58 @@ export default function App() {
       setIsSaving(false);
     }
   }, [selectedId, sequence]);
+
+  const handleAddNewSequence = useCallback(async () => {
+    if (!GAS_URL) {
+      alert('GAS_URL이 설정되지 않았습니다.');
+      return;
+    }
+
+    const newTitle = prompt('새 시퀀스 이름을 입력하세요:', '새 요가 시퀀스');
+    if (!newTitle) return;
+
+    const newSequence: YogaPose = {
+      id: `root-${Date.now()}`,
+      name: newTitle,
+      title: newTitle,
+      description: '새로운 시퀀스 설명',
+      duration: 0,
+      children: []
+    };
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ id: null, data: newSequence }), // id를 null로 보내면 GAS에서 appendRow 실행
+      });
+
+      const result = await response.json();
+      if (result.status === 'success') {
+        // 전체 데이터 다시 불러오기
+        const refreshResponse = await fetch(GAS_URL);
+        if (refreshResponse.ok) {
+          const newData = await refreshResponse.json();
+          setAllSequences(newData);
+          // 새로 추가된 마지막 행(ID) 선택
+          const keys = Object.keys(newData).sort((a, b) => {
+            const numA = parseInt(a.replace('row-', ''));
+            const numB = parseInt(b.replace('row-', ''));
+            return numA - numB;
+          });
+          const lastKey = keys[keys.length - 1];
+          setSelectedId(lastKey);
+          alert('새 시퀀스가 추가되었습니다!');
+        }
+      }
+    } catch (error) {
+      console.error('Add error:', error);
+      alert('추가 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
 
   const stats = React.useMemo(() => {
     if (!sequence) return { duration: 0, count: 0 };
@@ -273,9 +341,9 @@ export default function App() {
   if (!dataLoaded) {
     return (
       <div className="min-h-screen bg-neutral-900 flex items-center justify-center text-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xl font-medium">데이터를 불러오는 중...</p>
+        <div className="flex flex-col items-center gap-3 md:gap-4">
+          <div className="w-10 md:w-12 h-10 md:h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-base md:text-xl font-medium">데이터를 불러오는 중...</p>
         </div>
       </div>
     );
@@ -283,30 +351,30 @@ export default function App() {
 
   if (!sequence) {
     return (
-      <div className="min-h-screen bg-neutral-900 flex items-center justify-center text-white p-8 text-center">
-        <div className="max-w-md">
-          <h2 className="text-2xl font-bold mb-4">시퀀스 데이터를 찾을 수 없습니다</h2>
-          <p className="text-neutral-400 mb-6">
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center text-white p-4 md:p-8 text-center">
+        <div className="max-w-md w-full">
+          <h2 className="text-xl md:text-2xl font-bold mb-3 md:mb-4">시퀀스 데이터를 찾을 수 없습니다</h2>
+          <p className="text-neutral-400 mb-4 md:mb-6 text-sm md:text-base">
             GAS_URL 설정이 올바른지, 그리고 구글 시트에 데이터가 있는지 확인해 주세요.
           </p>
-          <div className="flex flex-wrap gap-2 justify-center mb-8">
+          <div className="flex flex-wrap gap-2 justify-center mb-6 md:mb-8">
             {Object.keys(allSequences).length > 0 ? (
               Object.keys(allSequences).map(id => (
                 <button
                   key={id}
                   onClick={() => setSelectedId(id)}
-                  className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg transition-colors"
+                  className="px-3 md:px-4 py-1.5 md:py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg transition-colors text-sm md:text-base"
                 >
                   {id}
                 </button>
               ))
             ) : (
-              <p className="text-sm text-neutral-500">등록된 시퀀스가 없습니다.</p>
+              <p className="text-xs md:text-sm text-neutral-500">등록된 시퀀스가 없습니다.</p>
             )}
           </div>
           <button 
             onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-full transition-colors font-medium"
+            className="w-full px-4 md:px-6 py-2 md:py-3 bg-emerald-600 hover:bg-emerald-500 rounded-full transition-colors font-medium text-sm md:text-base"
           >
             다시 시도
           </button>
@@ -318,96 +386,92 @@ export default function App() {
   // <div className="flex flex-row justify-between items-start gap-2">
 
   return (
-    <div className="relative flex h-[100dvh] w-full overflow-hidden bg-[#F5F2ED]">
-      {/* Header & Tabs Selector */}
-      <div className="absolute top-0 left-0 right-0 z-20 p-2 md:p-4 flex flex-col gap-4 pointer-events-none">
-        <div className="flex flex-col md:flex-row justify-between items-start gap-1 md:gap-4">
-          <header className="pointer-events-auto bg-[#F5F2ED]/80 backdrop-blur-md p-3 md:p-5 rounded-2xl border border-[#5A5A40]/10 shadow-sm cursor-pointer hover:bg-[#F5F2ED] transition-all group flex items-center w-full md:w-auto">
-            <div className="flex flex-col w-full">
-              <span className="text-[9px] uppercase tracking-[0.3em] text-[#5A5A40] font-bold opacity-80">Yoga Sequence Architect</span>
-              <div className="flex flex-col items-center justify-between w-full gap-2"
-                onClick={() => setIsEditingInfo(true)}
+    <div className="relative flex h-[100dvh] w-full overflow-hidden bg-[#F5F2ED] flex-col">
+      {/* Header Bar */}
+      <header className="flex flex-col gap-2 md:gap-3 px-3 md:px-6 py-2 md:py-3 bg-white/40 backdrop-blur-sm border-b border-[#5A5A40]/5 z-20">
+        {/* Title Section */}
+        <div className="flex items-center justify-between gap-2 md:gap-4">
+          <div
+            className="flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => setIsEditingInfo(true)}
+          >
+            <h1 className="font-sans text-lg md:text-2xl font-bold text-[#1A1A1A] leading-tight truncate md:line-clamp-2">
+              {sequence.title || 'Yoga Sequence'}
+            </h1>
+            <p className="font-sans text-xs md:text-sm text-[#5A5A40] font-medium mt-0.5 md:mt-1 line-clamp-1 md:line-clamp-2">
+              {sequence.description || '시퀀스 설명을 추가하세요.'}
+            </p>
+          </div>
+          
+          {/* View Toggle & Add Button - Center */}
+          <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1.5 md:gap-2 bg-white/80 backdrop-blur-sm p-1 md:p-1.5 rounded-lg border border-[#5A5A40]/10">
+              <button
+                onClick={() => setView('mindmap')}
+                className={`px-2 md:px-3 py-1.5 md:py-2 rounded-md md:rounded-lg transition-all flex items-center gap-1.5 md:gap-2 font-bold text-xs md:text-sm ${
+                  view === 'mindmap'
+                    ? 'bg-[#5A5A40] text-white shadow-sm'
+                    : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
+                }`}
+                title="MindMap View"
               >
-                <h1 className="mt-2 uppercase font-sans text-2xl md:text-3xl font-bold text-[#1A1A1A] leading-tight">
-                  {sequence.title || 'Yoga Sequence'}
-                </h1>
-                <div className="max-w-[500px] font-sans text-xs md:text-sm text-[#5A5A40] font-medium tracking-wide whitespace-pre-wrap">
-                  {sequence.description}
-                </div>
-              </div>
-              <div className="pointer-events-auto flex justify-center bg-white/80 backdrop-blur-md p-1 mt-2 rounded-xl border border-[#5A5A40]/10 shadow-lg mt-1 w-full">
-                <button
-                  onClick={() => setView('mindmap')}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex flex-1 items-center justify-center gap-2 ${view === 'mindmap' ? 'bg-[#5A5A40] text-white shadow-md' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
-                    }`}
-                >
-                  <MapIcon size={14} />
-                  MindMap
-                </button>
-                <button
-                  onClick={() => setView('timeline')}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex flex-1 items-center justify-center gap-2 ${view === 'timeline' ? 'bg-[#5A5A40] text-white shadow-md' : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
-                    }`}
-                >
-                  <Timer size={14} />
-                  Timeline
-                </button>
-              </div>
-            </div>
-          </header>
-
-          <div className="flex flex-col items-end gap-3 w-full md:w-auto">
-            <div className="pointer-events-auto flex items-center gap-1 bg-white/80 backdrop-blur-md p-1.5 rounded-2xl border border-[#5A5A40]/10 shadow-lg overflow-x-auto w-full md:max-w-[600px] custom-scrollbar">
-              {tabs.map(id => {
-                const seq = allSequences[id];
-                const displayLabel = seq?.title || id;
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setSelectedId(id)}
-                    className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all whitespace-nowrap ${selectedId === id
-                      ? 'bg-[#5A5A40] text-white shadow-md'
-                      : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
-                      }`}
-                  >
-                    {displayLabel}
-                  </button>
-                );
-              })}
+                <MapIcon size={14} className="md:w-4 md:h-4" />
+                <span>MindMap</span>
+              </button>
+              <button
+                onClick={() => setView('timeline')}
+                className={`px-2 md:px-3 py-1.5 md:py-2 rounded-md md:rounded-lg transition-all flex items-center gap-1.5 md:gap-2 font-bold text-xs md:text-sm ${
+                  view === 'timeline'
+                    ? 'bg-[#5A5A40] text-white shadow-sm'
+                    : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
+                }`}
+                title="Timeline View"
+              >
+                <Timer size={14} className="md:w-4 md:h-4" />
+                <span>Timeline</span>
+              </button>
             </div>
 
-            {/* {view === 'timeline' && (
-              <div className="pointer-events-auto flex items-center gap-2 sm:gap-4 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl animate-in slide-in-from-top-2 duration-300 bg-white/40 border border-[#5A5A40]/5">
-                <div className="flex items-center gap-2 sm:gap-3 pr-2 sm:pr-4 border-r border-[#5A5A40]/10">
-                  <span className="text-[10px] sm:text-[11px] font-black text-[#1A1A1A] uppercase tracking-tight">Timeline</span>
-                  <span className="text-[#5A5A40] text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.1em] opacity-60">
-                    {formatTime(stats.duration)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => {
-                      const categories = sequence.children || [];
-                      if (categories.length > 0) {
-                        handleAddNode(categories[categories.length - 1].id);
-                      } else {
-                        handleAddNode(sequence.id);
-                      }
-                    }}
-                    className="flex items-center gap-2 px-2 py-1 sm:px-3 sm:py-1.5 bg-[#5A5A40] text-white rounded-xl text-[9px] sm:text-[10px] font-bold hover:bg-[#4A4A30] active:scale-95 shadow-md"
-                  >
-                    <Plus size={10} className="sm:w-[12px] sm:h-[12px]" />
-                  </button>
-                </div>
-              </div>
-            )} */}
+            {/* Add New Sequence Button */}
+            <motion.button
+              onClick={handleAddNewSequence}
+              disabled={isSaving}
+              className="w-8 h-8 md:w-10 md:h-10 bg-white/60 hover:bg-white/80 disabled:opacity-50 text-[#5A5A40] rounded-lg shadow-sm border border-[#5A5A40]/20 flex items-center justify-center transition-all"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title="새 시퀀스 추가"
+            >
+              <Plus size={16} className="md:w-5 md:h-5" />
+            </motion.button>
           </div>
         </div>
-      </div>
+
+        {/* Tabs Bar */}
+        <div className="flex items-center gap-1 md:gap-2 overflow-x-auto -mx-3 md:-mx-6 px-3 md:px-6 pb-1">
+          <div className="flex items-center gap-1 md:gap-1.5 flex-nowrap">
+            {tabs.map(id => {
+              const seq = allSequences[id];
+              const displayLabel = seq?.title || id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setSelectedId(id)}
+                  className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md md:rounded-lg text-[10px] md:text-[11px] font-bold transition-all whitespace-nowrap ${
+                    selectedId === id
+                      ? 'bg-[#5A5A40] text-white shadow-sm'
+                      : 'bg-white/40 text-[#5A5A40] hover:bg-white/70 border border-[#5A5A40]/10'
+                  }`}
+                >
+                  {displayLabel}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 relative">
+      <main className="flex-1 relative overflow-hidden">
         {view === 'mindmap' ? (
           <MindMap
             data={sequence}
@@ -438,27 +502,25 @@ export default function App() {
         )}
 
         {/* Floating Action Buttons */}
-        <div className="absolute bottom-6 left-6 z-40 flex items-center gap-3 bg-white/90 backdrop-blur-md p-3 rounded-full border border-[#5A5A40]/10 shadow-lg">
+        <div className="absolute bottom-4 md:bottom-6 right-4 md:right-6 z-40 flex items-center gap-1.5 md:gap-2 bg-white/80 backdrop-blur-md p-1.5 md:p-2 rounded-full border border-[#5A5A40]/10 shadow-md">
           <motion.button
             onClick={handleCopyJson}
-            className="px-3 py-2 bg-[#5A5A40] hover:bg-[#4A4A30] text-white rounded-full border border-[#5A5A40]/20 transition-all flex items-center gap-2 shadow-md active:scale-95"
-            whileHover={{ scale: 1.05 }}
+            className="p-2 md:p-2.5 bg-[#5A5A40] hover:bg-[#4A4A30] text-white rounded-full transition-all flex items-center justify-center shadow-sm active:scale-95"
+            whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
             title="Copy JSON"
           >
-            <Code size={16} />
-            <span className="text-[11px] font-bold uppercase tracking-wider hidden sm:inline">{copied ? 'Copied!' : 'JSON'}</span>
+            <Code size={16} className="md:w-[18px] md:h-[18px]" />
           </motion.button>
           <motion.button
             onClick={handleSaveToFile}
             disabled={isSaving}
-            className="px-3 py-2 bg-[#5A5A40] hover:bg-[#4A4A30] disabled:opacity-50 text-white rounded-full border border-[#5A5A40]/20 transition-all flex items-center gap-2 shadow-md active:scale-95"
-            whileHover={{ scale: 1.05 }}
+            className="p-2 md:p-2.5 bg-[#5A5A40] hover:bg-[#4A4A30] disabled:opacity-50 text-white rounded-full transition-all flex items-center justify-center shadow-sm active:scale-95"
+            whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.95 }}
-            title="Save to File"
+            title="Save to Google Sheets"
           >
-            <Save size={16} />
-            <span className="text-[11px] font-bold uppercase tracking-wider hidden sm:inline">{isSaving ? 'Saving...' : 'Save'}</span>
+            <Save size={16} className="md:w-[18px] md:h-[18px]" />
           </motion.button>
         </div>
       </main>
@@ -474,26 +536,26 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="w-full max-w-xs bg-white border border-[#5A5A40]/10 rounded-2xl shadow-2xl p-6 text-center"
+              className="w-full max-w-xs bg-white border border-[#5A5A40]/10 rounded-2xl shadow-2xl p-4 md:p-6 text-center"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <X size={24} />
+              <div className="w-10 md:w-12 h-10 md:h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                <X size={20} className="md:w-6 md:h-6" />
               </div>
-              <h3 className="text-sm font-bold text-[#1A1A1A] mb-2">정말 삭제하시겠습니까?</h3>
-              <p className="text-[11px] text-[#1A1A1A]/60 mb-6">
+              <h3 className="text-sm md:text-base font-bold text-[#1A1A1A] mb-2">정말 삭제하시겠습니까?</h3>
+              <p className="text-[11px] md:text-xs text-[#1A1A1A]/60 mb-4 md:mb-6">
                 '{findNodeById(sequence, deletingId)?.name}' 노드에 입력된 정보가 있습니다. 삭제하면 복구할 수 없습니다.
               </p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setDeletingId(null)}
-                  className="flex-1 px-4 py-2 rounded-xl text-[11px] font-bold text-[#5A5A40] bg-[#F5F2ED] hover:bg-[#EBE8E2] transition-colors"
+                  className="flex-1 px-3 md:px-4 py-1.5 md:py-2 rounded-xl text-[11px] md:text-xs font-bold text-[#5A5A40] bg-[#F5F2ED] hover:bg-[#EBE8E2] transition-colors"
                 >
                   취소
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="flex-1 px-4 py-2 rounded-xl text-[11px] font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
+                  className="flex-1 px-3 md:px-4 py-1.5 md:py-2 rounded-xl text-[11px] md:text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
                 >
                   삭제
                 </button>
@@ -517,44 +579,44 @@ export default function App() {
               className="w-full max-w-[500px] bg-white border border-[#5A5A40]/10 rounded-2xl shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <form onSubmit={handleUpdateSequenceInfo} className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#5A5A40]">Edit Sequence Info</h3>
+              <form onSubmit={handleUpdateSequenceInfo} className="p-4 md:p-6">
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <h3 className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] text-[#5A5A40]">Edit Sequence Info</h3>
                   <button type="button" onClick={() => setIsEditingInfo(false)} className="text-[#1A1A1A]/30 hover:text-[#1A1A1A] transition-colors">
-                    <X size={18} />
+                    <X size={18} className="md:w-5 md:h-5" />
                   </button>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   <div>
-                    <label className="block text-[9px] uppercase tracking-widest text-[#5A5A40]/50 mb-1 font-bold">Sequence Title</label>
+                    <label className="block text-[8px] md:text-[9px] uppercase tracking-widest text-[#5A5A40]/50 mb-0.5 md:mb-1 font-bold">Sequence Title</label>
                     <input
                       autoFocus
                       type="text"
                       value={sequence.title || ''}
                       onChange={(e) => setSequence({ ...sequence, title: e.target.value })}
-                      className="w-full px-4 py-2 bg-[#F5F2ED]/40 border border-[#5A5A40]/10 focus:border-[#5A5A40] rounded-xl outline-none transition-all font-sans text-base text-[#1A1A1A]"
+                      className="w-full px-3 md:px-4 py-1.5 md:py-2 bg-[#F5F2ED]/40 border border-[#5A5A40]/10 focus:border-[#5A5A40] rounded-lg md:rounded-xl outline-none transition-all font-sans text-sm text-[#1A1A1A]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[9px] uppercase tracking-widest text-[#5A5A40]/50 mb-1 font-bold">Description</label>
+                    <label className="block text-[8px] md:text-[9px] uppercase tracking-widest text-[#5A5A40]/50 mb-0.5 md:mb-1 font-bold">Description</label>
                     <textarea
                       rows={3}
                       value={sequence.description || ''}
                       onChange={(e) => setSequence({ ...sequence, description: e.target.value })}
                       placeholder="시퀀스에 대한 설명을 입력하세요."
-                      className="w-full px-4 py-2 bg-[#F5F2ED]/40 border border-[#5A5A40]/10 focus:border-[#5A5A40] rounded-xl outline-none transition-all text-sm text-[#1A1A1A]/70 resize-none"
+                      className="w-full px-3 md:px-4 py-1.5 md:py-2 bg-[#F5F2ED]/40 border border-[#5A5A40]/10 focus:border-[#5A5A40] rounded-lg md:rounded-xl outline-none transition-all text-sm text-[#1A1A1A]/70 resize-none"
                     />
                   </div>
                 </div>
 
-                <div className="mt-6">
+                <div className="mt-4 md:mt-6">
                   <button
                     type="submit"
-                    className="w-full bg-[#5A5A40] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#4A4A30] transition-all shadow-md active:scale-95 text-sm"
+                    className="w-full bg-[#5A5A40] text-white py-2 md:py-3 rounded-lg md:rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-[#4A4A30] transition-all shadow-md active:scale-95 text-xs md:text-sm"
                   >
-                    <Save size={16} />
+                    <Save size={14} className="md:w-4 md:h-4" />
                     Save Changes
                   </button>
                 </div>
@@ -572,18 +634,18 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 10 }}
-              className="w-full max-w-[500px] bg-white border border-[#5A5A40]/10 rounded-2xl shadow-2xl overflow-hidden"
+              className="w-full max-w-[500px] bg-white border border-[#5A5A40]/10 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <form onSubmit={handleUpdateNode} className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#5A5A40]">Edit Pose</h3>
+              <form onSubmit={handleUpdateNode} className="p-4 md:p-6">
+                <div className="flex items-center justify-between mb-3 md:mb-4 sticky top-0 bg-white">
+                  <h3 className="text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] text-[#5A5A40]">Edit Pose</h3>
                   <button type="button" onClick={() => setEditingPose(null)} className="text-[#1A1A1A]/30 hover:text-[#1A1A1A] transition-colors">
-                    <X size={16} />
+                    <X size={16} className="md:w-[18px] md:h-[18px]" />
                   </button>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-2 md:space-y-2.5">
                   <div>
                     <label className="block text-[8px] uppercase tracking-widest text-[#5A5A40]/50 mb-0.5 font-bold">Name</label>
                     <input
@@ -591,18 +653,18 @@ export default function App() {
                       type="text"
                       value={editingPose.name}
                       onChange={(e) => setEditingPose({ ...editingPose, name: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-[#F5F2ED]/40 border border-[#5A5A40]/10 focus:border-[#5A5A40] rounded-lg outline-none transition-all font-sans text-sm text-[#1A1A1A]"
+                      className="w-full px-3 py-1.5 bg-[#F5F2ED]/40 border border-[#5A5A40]/10 focus:border-[#5A5A40] rounded-lg outline-none transition-all font-sans text-xs md:text-sm text-[#1A1A1A]"
                     />
                   </div>
 
                   <div>
                     <label className="block text-[8px] uppercase tracking-widest text-[#5A5A40]/50 mb-0.5 font-bold">Description</label>
                     <textarea
-                      rows={6}
+                      rows={4}
                       value={editingPose.description}
                       onChange={(e) => setEditingPose({ ...editingPose, description: e.target.value })}
                       placeholder="자세에 대한 설명을 입력하세요."
-                      className="w-full px-3 py-1.5 bg-[#F5F2ED]/40 border border-[#5A5A40]/10 focus:border-[#5A5A40] rounded-lg outline-none transition-all text-sm text-[#1A1A1A]/70 resize-none"
+                      className="w-full px-3 py-1.5 bg-[#F5F2ED]/40 border border-[#5A5A40]/10 focus:border-[#5A5A40] rounded-lg outline-none transition-all text-xs md:text-sm text-[#1A1A1A]/70 resize-none"
                     />
                   </div>
 
@@ -613,17 +675,17 @@ export default function App() {
                       step="0.1"
                       value={editingPose.duration || 0}
                       onChange={(e) => setEditingPose({ ...editingPose, duration: parseFloat(e.target.value) })}
-                      className="w-full px-3 py-1.5 bg-[#F5F2ED]/40 border border-[#5A5A40]/10 focus:border-[#5A5A40] rounded-lg outline-none transition-all text-sm text-[#1A1A1A]"
+                      className="w-full px-3 py-1.5 bg-[#F5F2ED]/40 border border-[#5A5A40]/10 focus:border-[#5A5A40] rounded-lg outline-none transition-all text-xs md:text-sm text-[#1A1A1A]"
                     />
                   </div>
                 </div>
 
-                <div className="mt-4 space-y-1.5">
+                <div className="mt-4 md:mt-6 space-y-1.5">
                   <button
                     type="submit"
-                    className="w-full bg-[#5A5A40] text-white py-2 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-[#4A4A30] transition-all shadow-md shadow-[#5A5A40]/5 active:scale-95 text-xs"
+                    className="w-full bg-[#5A5A40] text-white py-2 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-[#4A4A30] transition-all shadow-md shadow-[#5A5A40]/5 active:scale-95 text-xs md:text-sm"
                   >
-                    <Save size={14} />
+                    <Save size={12} className="md:w-3.5 md:h-3.5" />
                     Save Changes
                   </button>
 
@@ -636,7 +698,7 @@ export default function App() {
                       }}
                       className="w-full bg-red-50 text-red-500 py-2 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-red-100 transition-all text-[10px] border border-red-100"
                     >
-                      <X size={12} />
+                      <X size={10} className="md:w-3 md:h-3" />
                       Delete Node
                     </button>
                   )}
@@ -648,7 +710,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* Global FAQ Panel */}
-      <FAQ faqItems={faqItems} onUpdate={setFaqItems} isSaving={faqSaving} />
+      {/* <FAQ faqItems={faqItems} onUpdate={setFaqItems} isSaving={faqSaving} /> */}
     </div>
   );
 }
