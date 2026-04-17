@@ -2,8 +2,8 @@
 
 1. [Google Sheets](https://sheets.new)를 새로 생성합니다.
 2. 하단 시트 탭 이름을 `Sequences`로 변경합니다.
-3. 1행에 헤더를 작성합니다: `json_data` (A1).
-   - *참고: 이제 별도의 ID 컬럼 없이 행 번호(Row Index)를 내부적으로 ID로 사용합니다.*
+3. 1행부터 바로 데이터를 넣으시면 됩니다. 헤더(json_data 등)가 필요 없습니다.
+   - *참고: 이제 1행부터 모든 행을 데이터로 인식하며, 행 번호가 곧 ID가 됩니다.*
 
 ### 2단계: Apps Script 코드 작성
 
@@ -19,12 +19,12 @@ function doGet(e) {
   const data = sheet.getDataRange().getValues();
   const result = {};
   
-  // 첫 번째 행은 헤더이므로 제외 (i=1부터 시작)
-  for (let i = 1; i < data.length; i++) {
-    const jsonStr = data[i][0]; // json_data
-    if (!jsonStr) continue;
+  // 1행부터 모든 행을 데이터로 처리
+  for (let i = 0; i < data.length; i++) {
+    const jsonStr = data[i][0]; 
+    if (!jsonStr || jsonStr.toString().trim() === "") continue;
     
-    const id = `row-${i + 1}`; // 행 번호를 ID로 사용
+    const id = `row-${i + 1}`; // 1행은 row-1, 2행은 row-2 ...
     try {
       result[id] = JSON.parse(jsonStr);
     } catch (err) {
@@ -52,7 +52,7 @@ function doPost(e) {
   // ID가 'row-X' 형식인 경우 해당 행에 직접 저장
   if (id && id.startsWith('row-')) {
     const rowNum = parseInt(id.replace('row-', ''));
-    if (!isNaN(rowNum) && rowNum > 1) {
+    if (!isNaN(rowNum) && rowNum > 0) {
       sheet.getRange(rowNum, 1).setValue(jsonString);
       return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
         .setMimeType(ContentService.MimeType.JSON);

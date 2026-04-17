@@ -7,7 +7,7 @@ import FAQ from './components/Memo';
 import { YogaPose, FAQItem, updateNodeInTree, addNodeToTree, deleteNodeFromTree, findNodeById, moveNodeInTree, formatTime, getSequenceStats } from './types';
 
 // TODO: Replace with your actual GAS Web App URL
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwFt8oDMlJqUhfJDZ8n8MqCpYnhHjuaL1YYlkWwyhR5a6xeAC9IoOBh3Rkp1J3z_ATXFg/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzgxVpg4WDGrJaOtnH5UIQXxRPjAsoPEk136xbEYyPCRUEnyNjl6daXxlnn_uR9qUmSDw/exec';
 
 // Fallback initial data in case GAS is not yet configured
 const initialData: Record<string, YogaPose> = {};
