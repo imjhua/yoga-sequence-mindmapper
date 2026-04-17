@@ -6,47 +6,67 @@ import Timeline from './components/Timeline';
 import FAQ from './components/Memo';
 import { YogaPose, FAQItem, updateNodeInTree, addNodeToTree, deleteNodeFromTree, findNodeById, moveNodeInTree, formatTime, getSequenceStats } from './types';
 
-// Import all 10 sequences
-import seq0 from './data/seq0.json';
-import seq1 from './data/seq1.json';
-import seq2 from './data/seq2.json';
-import seq3 from './data/seq3.json';
-import seq4 from './data/seq4.json';
-import seq5 from './data/seq5.json';
-import seq6 from './data/seq6.json';
-import seq7 from './data/seq7.json';
-import seq8 from './data/seq8.json';
-import seq9 from './data/seq9.json';
-import faqInitialData from './data/faq.json';
+// TODO: Replace with your actual GAS Web App URL
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwFt8oDMlJqUhfJDZ8n8MqCpYnhHjuaL1YYlkWwyhR5a6xeAC9IoOBh3Rkp1J3z_ATXFg/exec';
 
-const initialData: Record<string, YogaPose> = {
-  '#0': seq0 as YogaPose,
-  '#1': seq1 as YogaPose,
-  '#2': seq2 as YogaPose,
-  '#3': seq3 as YogaPose,
-  '#4': seq4 as YogaPose,
-  '#5': seq5 as YogaPose,
-  '#6': seq6 as YogaPose,
-  '#7': seq7 as YogaPose,
-  '#8': seq8 as YogaPose,
-  '#9': seq9 as YogaPose,
-};
+// Fallback initial data in case GAS is not yet configured
+const initialData: Record<string, YogaPose> = {};
 
 export default function App() {
   const [allSequences, setAllSequences] = useState<Record<string, YogaPose>>(initialData);
   const [selectedId, setSelectedId] = useState<string>(() => {
-    return localStorage.getItem('lastSelectedSequenceId') || '#0';
+    return localStorage.getItem('lastSelectedSequenceId') || '';
   });
 
+  const [dataLoaded, setDataLoaded] = useState(false);
+
   useEffect(() => {
-    localStorage.setItem('lastSelectedSequenceId', selectedId);
+    if (selectedId) {
+      localStorage.setItem('lastSelectedSequenceId', selectedId);
+    }
   }, [selectedId]);
+
+  // Load all sequences from GAS on app startup
+  useEffect(() => {
+    const loadAllData = async () => {
+      if (!GAS_URL) {
+        console.warn('GAS_URL is not configured. Please see GAS_INSTRUCTIONS.md');
+        setDataLoaded(true);
+        return;
+      }
+
+      try {
+        const response = await fetch(GAS_URL);
+        if (response.ok) {
+          const data = await response.json();
+          if (data && Object.keys(data).length > 0) {
+            setAllSequences(data);
+            
+            // 데이터가 로드된 후, 현재 선택된 ID가 유효하지 않으면 첫 번째 데이터 선택
+            setSelectedId(prev => {
+              const keys = Object.keys(data).sort((a, b) => a.localeCompare(b));
+              if (!prev || !data[prev]) {
+                return keys[0];
+              }
+              return prev;
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error loading data from GAS:', error);
+      } finally {
+        setDataLoaded(true);
+      }
+    };
+    loadAllData();
+  }, []);
 
   const sequence = allSequences[selectedId];
 
   const setSequence = useCallback((update: YogaPose | ((prev: YogaPose) => YogaPose)) => {
     setAllSequences(prev => {
       const current = prev[selectedId];
+      if (!current) return prev;
       const next = typeof update === 'function' ? update(current) : update;
       return {
         ...prev,
@@ -58,83 +78,51 @@ export default function App() {
   const [editingPose, setEditingPose] = useState<YogaPose | null>(null);
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [view, setView] = useState<'mindmap' | 'timeline'>('mindmap');
-  const [isAdding, setIsAdding] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [reparentingNodeId, setReparentingNodeId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [faqItems, setFaqItems] = useState<FAQItem[]>(faqInitialData as FAQItem[]);
+  const [faqItems, setFaqItems] = useState<FAQItem[]>([]);
   const [faqSaving, setFaqSaving] = useState(false);
   const [faqLoaded, setFaqLoaded] = useState(false);
 
-  // Load FAQ from file on app startup (once)
-  useEffect(() => {
-    const loadFAQ = async () => {
-      try {
-        const response = await fetch('/api/load-faq');
-        if (response.ok) {
-          const data = await response.json();
-          setFaqItems(data || []);
-        }
-      } catch (error) {
-        console.error('Error loading FAQ:', error);
-      } finally {
-        setFaqLoaded(true);
-      }
-    };
-    loadFAQ();
-  }, []);
-
-  // Save FAQ to file whenever it changes
-  useEffect(() => {
-    if (!faqLoaded) return; // Skip saving on initial load
-    
-    const saveFAQ = async () => {
-      setFaqSaving(true);
-      try {
-        const response = await fetch('/api/save-faq', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(faqItems),
-        });
-        if (!response.ok) {
-          console.error('FAQ save error:', await response.json());
-        }
-      } catch (error) {
-        console.error('FAQ save error:', error);
-      } finally {
-        setFaqSaving(false);
-      }
-    };
-    saveFAQ();
-  }, [faqItems, faqLoaded]);
-
   const handleSaveToFile = useCallback(async () => {
+    if (!GAS_URL) {
+      alert('GAS_URL이 설정되지 않았습니다. GAS_INSTRUCTIONS.md를 확인해 주세요.');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const response = await fetch('/api/save-sequence', {
+      const response = await fetch(GAS_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'text/plain', // GAS doesn't always like application/json from different origins
+        },
         body: JSON.stringify({ id: selectedId, data: sequence }),
       });
 
-      if (response.ok) {
-        alert('성공적으로 저장되었습니다!');
+      const result = await response.json();
+      if (result.status === 'success') {
+        alert('성공적으로 Google Sheets에 저장되었습니다!');
       } else {
-        const err = await response.json();
-        alert(`저장 실패: ${err.error}`);
+        alert(`저장 실패: ${result.message}`);
       }
     } catch (error) {
       console.error('Save error:', error);
-      alert('저장 중 오류가 발생했습니다.');
+      alert('저장 중 오류가 발생했습니다. 브라우저 콘솔을 확인해 주세요.');
     } finally {
       setIsSaving(false);
     }
   }, [selectedId, sequence]);
 
-  const stats = React.useMemo(() => getSequenceStats(sequence), [sequence]);
+  const stats = React.useMemo(() => {
+    if (!sequence) return { duration: 0, count: 0 };
+    return getSequenceStats(sequence);
+  }, [sequence]);
 
   const handleCopyJson = useCallback(() => {
+    if (!sequence) return;
     navigator.clipboard.writeText(JSON.stringify(sequence, null, 2));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -147,13 +135,14 @@ export default function App() {
 
   const handleUpdateNode = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingPose) return;
+    if (!editingPose || !sequence) return;
     const updated = updateNodeInTree(sequence, editingPose.id, editingPose);
     setSequence(updated);
     setEditingPose(null);
   }, [editingPose, sequence, setSequence]);
 
   const handleAddNode = useCallback((parentId: string) => {
+    if (!sequence) return;
     const parentNode = findNodeById(sequence, parentId);
 
     const newNode: YogaPose = {
@@ -172,7 +161,7 @@ export default function App() {
   }, [sequence, setSequence]);
 
   const handleDeleteNode = useCallback((id: string) => {
-    if (id === sequence.id) return;
+    if (!sequence || id === sequence.id) return;
 
     const nodeToDelete = findNodeById(sequence, id);
     if (!nodeToDelete) return;
@@ -193,7 +182,7 @@ export default function App() {
   }, [sequence, setSequence]);
 
   const confirmDelete = useCallback(() => {
-    if (deletingId) {
+    if (deletingId && sequence) {
       const updated = deleteNodeFromTree(sequence, deletingId);
       if (updated) setSequence(updated);
       setDeletingId(null);
@@ -242,7 +231,7 @@ export default function App() {
   }, [setSequence]);
 
   const handleMoveNode = useCallback((nodeId: string, targetParentId: string) => {
-    if (nodeId === targetParentId) {
+    if (!sequence || nodeId === targetParentId) {
       setReparentingNodeId(null);
       return;
     }
@@ -268,13 +257,63 @@ export default function App() {
   }, [sequence, setSequence]);
 
   const handleUpdateLayout = useCallback((settings: any) => {
+    if (!sequence) return;
     setSequence({
       ...sequence,
       layoutSettings: { ...sequence.layoutSettings, ...settings }
     });
   }, [sequence, setSequence]);
 
-  const tabs = ['#0', '#1', '#2', '#3', '#4', '#5', '#6', '#7', '#8', '#9'];
+  const tabs = React.useMemo(() => {
+    return Object.keys(allSequences).sort((a, b) => {
+      return a.localeCompare(b);
+    });
+  }, [allSequences]);
+
+  if (!dataLoaded) {
+    return (
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center text-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xl font-medium">데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!sequence) {
+    return (
+      <div className="min-h-screen bg-neutral-900 flex items-center justify-center text-white p-8 text-center">
+        <div className="max-w-md">
+          <h2 className="text-2xl font-bold mb-4">시퀀스 데이터를 찾을 수 없습니다</h2>
+          <p className="text-neutral-400 mb-6">
+            GAS_URL 설정이 올바른지, 그리고 구글 시트에 데이터가 있는지 확인해 주세요.
+          </p>
+          <div className="flex flex-wrap gap-2 justify-center mb-8">
+            {Object.keys(allSequences).length > 0 ? (
+              Object.keys(allSequences).map(id => (
+                <button
+                  key={id}
+                  onClick={() => setSelectedId(id)}
+                  className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg transition-colors"
+                >
+                  {id}
+                </button>
+              ))
+            ) : (
+              <p className="text-sm text-neutral-500">등록된 시퀀스가 없습니다.</p>
+            )}
+          </div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-full transition-colors font-medium"
+          >
+            다시 시도
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // <div className="flex flex-row justify-between items-start gap-2">
 
@@ -290,7 +329,7 @@ export default function App() {
                 onClick={() => setIsEditingInfo(true)}
               >
                 <h1 className="mt-2 uppercase font-sans text-2xl md:text-3xl font-bold text-[#1A1A1A] leading-tight">
-                  {sequence.title || 'Yoga Sequence'}#{parseInt(selectedId.replace('#', ''))}
+                  {sequence.title || 'Yoga Sequence'}
                 </h1>
                 <div className="max-w-[500px] font-sans text-xs md:text-sm text-[#5A5A40] font-medium tracking-wide whitespace-pre-wrap">
                   {sequence.description}
@@ -321,7 +360,7 @@ export default function App() {
             <div className="pointer-events-auto flex items-center gap-1 bg-white/80 backdrop-blur-md p-1.5 rounded-2xl border border-[#5A5A40]/10 shadow-lg overflow-x-auto w-full md:max-w-[600px] custom-scrollbar">
               {tabs.map(id => {
                 const seq = allSequences[id];
-                const displayLabel = seq.title ? `${seq.title}${id}` : id;
+                const displayLabel = seq?.title || id;
                 return (
                   <button
                     key={id}
