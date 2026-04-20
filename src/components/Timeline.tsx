@@ -62,7 +62,7 @@ const TimelineItem: React.FC<{
       }}
       className="relative select-none"
     >
-      <div className="flex flex-col ml-4">
+      <div className="flex flex-col md:ml-4">
         <div 
           className="flex items-center w-full group"
           style={{ paddingLeft: `${indent}px` }}
