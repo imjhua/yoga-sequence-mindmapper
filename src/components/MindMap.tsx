@@ -293,11 +293,11 @@ const MindMap: React.FC<MindMapProps> = ({
     // Shapes based on depth
     node.each(function(d) {
       const el = d3.select(this);
-      const fontSize = d.depth === 0 ? 18 : d.depth === 1 ? 14 : 12;
+      const fontSize = d.depth === 0 ? 22 : d.depth === 1 ? 14 : 12;
       const charWidth = fontSize * 0.8;
-      const textWidth = Math.max(80, d.data.name.length * charWidth + 24);
-      const height = d.depth === 0 ? 64 : d.depth === 1 ? 48 : 38;
-      const rx = d.depth === 0 ? 32 : d.depth === 1 ? 12 : 6;
+      const textWidth = Math.max(100, d.data.name.length * charWidth + 24);
+      const height = d.depth === 0 ? 62 : d.depth === 1 ? 48 : 38;
+      const rx = d.depth === 0 ? 28 : d.depth === 1 ? 12 : 6;
       
       el.append('rect')
         .attr('x', -textWidth / 2)
