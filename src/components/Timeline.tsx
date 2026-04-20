@@ -133,7 +133,7 @@ const TimelineItem: React.FC<{
             </div>
             
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              <div className="flex items-center gap-0.5 sm:gap-1 opacity-0 group-hover:opacity-100">
+              <div className="flex items-center gap-0.5 sm:gap-1">
                 <button 
                   onClick={(e) => { e.stopPropagation(); onAdd(node.id); }}
                   className="p-1 sm:p-1.5 hover:bg-[#F5F2ED] text-[#5A5A40] rounded-md"
@@ -148,31 +148,6 @@ const TimelineItem: React.FC<{
                 >
                   <Trash2 size={12} className="sm:w-[14px] sm:h-[14px]" />
                 </button>
-              </div>
-
-              <div 
-                className="flex items-center gap-1 text-[#5A5A40] bg-[#F5F2ED] px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-md text-[8px] sm:text-[9px] font-bold min-w-[35px] sm:min-w-[45px] justify-center cursor-text"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDurationClick(node);
-                }}
-              >
-                <Timer size={8} className="sm:w-[10px] sm:h-[10px]" />
-                {editingDurationId === node.id ? (
-                  <input
-                    autoFocus
-                    type="number"
-                    step="0.1"
-                    value={tempDuration}
-                    onChange={(e) => setTempDuration(e.target.value)}
-                    onBlur={() => handleDurationSubmit(node.id)}
-                    onKeyDown={(e) => handleDurationKeyDown(e, node.id)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-8 sm:w-10 bg-transparent border-none outline-none text-center p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                  />
-                ) : (
-                  <span>{formatTime(node.duration || 0)}</span>
-                )}
               </div>
             </div>
           </div>
@@ -273,14 +248,8 @@ const Timeline: React.FC<TimelineProps> = ({
     }
   };
 
-  const allAsanas = useMemo(() => {
-    const asanas: YogaPose[] = [];
-    data.children?.forEach(cat => {
-      cat.children?.forEach(asana => {
-        asanas.push(asana);
-      });
-    });
-    return asanas.sort((a, b) => (a.priority || 0) - (b.priority || 0));
+  const allCategories = useMemo(() => {
+    return (data.children || []).sort((a, b) => (a.priority || 0) - (b.priority || 0));
   }, [data]);
 
   return (
@@ -292,14 +261,14 @@ const Timeline: React.FC<TimelineProps> = ({
 
           <Reorder.Group 
             axis="y" 
-            values={allAsanas.map(a => a.id)} 
+            values={allCategories.map(c => c.id)} 
             onReorder={(newIds) => {
-              const newOrder = newIds.map(id => allAsanas.find(a => a.id === id)!);
+              const newOrder = newIds.map(id => allCategories.find(c => c.id === id)!);
               onReorder(newOrder);
             }}
             className="space-y-1.5 md:space-y-2 pb-40 relative z-10"
           >
-            {allAsanas.map((child, idx) => (
+            {allCategories.map((child, idx) => (
               <TimelineItem 
                 key={child.id}
                 node={child}

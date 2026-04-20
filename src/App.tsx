@@ -1,13 +1,13 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Target, Sparkles, Map as MapIcon, Save, Timer, Code, LayoutGrid, Plus, Edit3 } from 'lucide-react';
+import { X, Target, Sparkles, Map as MapIcon, Save, Timer, Code, LayoutGrid, Plus, Edit3, Trash2, RotateCcw } from 'lucide-react';
 import MindMap from './components/MindMap';
 import Timeline from './components/Timeline';
 import FAQ from './components/Memo';
 import { YogaPose, FAQItem, updateNodeInTree, addNodeToTree, deleteNodeFromTree, findNodeById, moveNodeInTree, formatTime, getSequenceStats } from './types';
 
 // TODO: Replace with your actual GAS Web App URL
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzgxVpg4WDGrJaOtnH5UIQXxRPjAsoPEk136xbEYyPCRUEnyNjl6daXxlnn_uR9qUmSDw/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbz1Ls3CrlMEFGIB9cKE1NVS0lI8P1dGA8iELTqt-Frp7mtCTKNfWQ1yfsVBN0hoPnW6lA/exec';
 
 // Fallback initial data in case GAS is not yet configured
 const initialData: Record<string, YogaPose> = {};
@@ -39,13 +39,21 @@ export default function App() {
         const response = await fetch(GAS_URL);
         if (response.ok) {
           const data = await response.json();
-          if (data && Object.keys(data).length > 0) {
-            setAllSequences(data);
+          // 유효한 데이터만 필터링 (null, undefined, 빈 객체 제외)
+          const validData = Object.entries(data || {})
+            .filter(([, value]) => value && Object.keys(value).length > 0)
+            .reduce((acc, [key, value]) => {
+              acc[key] = value as YogaPose;
+              return acc;
+            }, {} as Record<string, YogaPose>);
+
+          if (Object.keys(validData).length > 0) {
+            setAllSequences(validData);
             
             // 데이터가 로드된 후, 현재 선택된 ID가 유효하지 않으면 첫 번째 데이터 선택
             setSelectedId(prev => {
-              const keys = Object.keys(data).sort((a, b) => a.localeCompare(b));
-              if (!prev || !data[prev]) {
+              const keys = Object.keys(validData).sort((a, b) => a.localeCompare(b));
+              if (!prev || !validData[prev]) {
                 return keys[0];
               }
               return prev;
@@ -101,6 +109,8 @@ export default function App() {
   const [faqItems, setFaqItems] = useState<FAQItem[]>([]);
   const [faqSaving, setFaqSaving] = useState(false);
   const [faqLoaded, setFaqLoaded] = useState(false);
+  const [clearingAllChildren, setClearingAllChildren] = useState(false);
+  const [deletingTabId, setDeletingTabId] = useState<string | null>(null);
 
   const handleSaveToFile = useCallback(async () => {
     if (!GAS_URL) {
@@ -120,7 +130,7 @@ export default function App() {
 
       const result = await response.json();
       if (result.status === 'success') {
-        alert('성공적으로 Google Sheets에 저장되었습니다!');
+        // alert('성공적으로 Google Sheets에 저장되었습니다!');
       } else {
         alert(`저장 실패: ${result.message}`);
       }
@@ -138,16 +148,28 @@ export default function App() {
       return;
     }
 
-    const newTitle = prompt('새 시퀀스 이름을 입력하세요:', '새 요가 시퀀스');
-    if (!newTitle) return;
+    const newName = prompt('새 시퀀스 이름을 입력하세요:', '새 요가 시퀀스');
+    if (!newName) return;
+
+    const defaultChildren: YogaPose[] = [
+      { id: 'node-seated-pose', name: '좌법', description: '', duration: 0, children: [], x: 0.008771704426196791, y: 142.50548235015728 },
+      { id: 'node-sitting', name: '시팅', description: '', duration: 0, children: [], x: 1.2108052682254489, y: 205.9318925997109 },
+      { id: 'node-buildup', name: '빌드업', description: '', duration: 0, children: [], x: 2.0575475337765567, y: 160.1568020296522 },
+      { id: 'node-peak', name: '최종', description: '', duration: 0, children: [], x: 3.1415868849170954, y: 115.00001525982229 },
+      { id: 'node-cooldown', name: '쿨다운', description: '', duration: 0, children: [], x: 4.267406783783952, y: 188.65401370342346 },
+      { id: 'node-savasana', name: '사바사나', description: '', duration: 0, children: [], x: -1.169705247542307, y: 198.50940855740194 },
+    ];
 
     const newSequence: YogaPose = {
       id: `root-${Date.now()}`,
-      name: newTitle,
-      title: newTitle,
+      name: newName,
+      title: '힐링',
       description: '새로운 시퀀스 설명',
       duration: 0,
-      children: []
+      priority: 0,
+      x: 0,
+      y: 0,
+      children: defaultChildren
     };
 
     setIsSaving(true);
@@ -155,17 +177,15 @@ export default function App() {
       const response = await fetch(GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ id: null, data: newSequence }), // id를 null로 보내면 GAS에서 appendRow 실행
+        body: JSON.stringify({ id: null, data: newSequence }),
       });
 
       const result = await response.json();
       if (result.status === 'success') {
-        // 전체 데이터 다시 불러오기
         const refreshResponse = await fetch(GAS_URL);
         if (refreshResponse.ok) {
           const newData = await refreshResponse.json();
           setAllSequences(newData);
-          // 새로 추가된 마지막 행(ID) 선택
           const keys = Object.keys(newData).sort((a, b) => {
             const numA = parseInt(a.replace('row-', ''));
             const numB = parseInt(b.replace('row-', ''));
@@ -173,7 +193,17 @@ export default function App() {
           });
           const lastKey = keys[keys.length - 1];
           setSelectedId(lastKey);
-          alert('새 시퀀스가 추가되었습니다!');
+
+          // 새로 추가된 시퀀스를 Google Sheets에 자동 저장
+          try {
+            await fetch(GAS_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain' },
+              body: JSON.stringify({ id: lastKey, data: newData[lastKey] }),
+            });
+          } catch (error) {
+            console.error('Auto-save error:', error);
+          }
         }
       }
     } catch (error) {
@@ -257,6 +287,78 @@ export default function App() {
     }
   }, [deletingId, sequence, setSequence]);
 
+  const confirmClearAllChildren = useCallback(() => {
+    if (sequence) {
+      const defaultChildren: YogaPose[] = [
+        { id: 'node-seated-pose', name: '좌법', description: '', duration: 0, children: [], x: 0.008771704426196791, y: 142.50548235015728 },
+        { id: 'node-sitting', name: '시팅', description: '', duration: 0, children: [], x: 1.2108052682254489, y: 205.9318925997109 },
+        { id: 'node-buildup', name: '빌드업', description: '', duration: 0, children: [], x: 2.0575475337765567, y: 160.1568020296522 },
+        { id: 'node-peak', name: '최종', description: '', duration: 0, children: [], x: 3.1415868849170954, y: 115.00001525982229 },
+        { id: 'node-cooldown', name: '쿨다운', description: '', duration: 0, children: [], x: 4.267406783783952, y: 188.65401370342346 },
+        { id: 'node-savasana', name: '사바사나', description: '', duration: 0, children: [], x: -1.169705247542307, y: 198.50940855740194 },
+      ];
+      const resetSequence = {
+        ...sequence,
+        name: '새 요가 시퀀스',
+        title: '힐링',
+        duration: 0,
+        priority: 0,
+        x: 0,
+        y: 0,
+        children: defaultChildren
+      };
+      setIsSaving(true);
+      setTimeout(() => {
+        setSequence(resetSequence);
+        setClearingAllChildren(false);
+        setIsSaving(false);
+      }, 600);
+    }
+  }, [sequence, setSequence]);
+
+  const confirmDeleteTab = useCallback(async () => {
+    if (!deletingTabId || !GAS_URL) {
+      setDeletingTabId(null);
+      return;
+    }
+
+    setIsSaving(true);
+    setDeletingTabId(null); // 다이얼로그 즉시 닫기
+    
+    try {
+      const response = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ id: deletingTabId, data: null, delete: true }),
+      });
+
+      const result = await response.json();
+      if (result.status === 'success') {
+        const newSequences = { ...allSequences };
+        delete newSequences[deletingTabId];
+        setAllSequences(newSequences);
+
+        // 남은 시퀀스 중 첫 번째 선택
+        const keys = Object.keys(newSequences).sort((a, b) => a.localeCompare(b));
+        if (keys.length > 0) {
+          setSelectedId(keys[0]);
+        } else {
+          setSelectedId('');
+        }
+        
+        // 로딩 UI를 잠시 보여주기 위해 지연 추가
+        await new Promise(resolve => setTimeout(resolve, 600));
+      } else {
+        alert(`삭제 실패: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Delete tab error:', error);
+      alert('삭제 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [deletingTabId, allSequences, GAS_URL, setAllSequences]);
+
   const handleUpdatePriority = useCallback((id: string, priority: number) => {
     setSequence(prev => updateNodeInTree(prev, id, { priority }));
   }, [setSequence]);
@@ -334,7 +436,9 @@ export default function App() {
 
   const tabs = React.useMemo(() => {
     return Object.keys(allSequences).sort((a, b) => {
-      return a.localeCompare(b);
+      const numA = parseInt(a.replace('row-', ''));
+      const numB = parseInt(b.replace('row-', ''));
+      return numA - numB;
     });
   }, [allSequences]);
 
@@ -388,82 +492,127 @@ export default function App() {
   return (
     <div className="relative flex h-[100dvh] w-full overflow-hidden bg-[#F5F2ED] flex-col">
       {/* Header Bar */}
-      <header className="flex flex-col gap-2 md:gap-3 px-3 md:px-6 py-2 md:py-3 bg-white/40 backdrop-blur-sm border-b border-[#5A5A40]/5 z-20">
+      <header className="relative flex flex-col px-3 md:px-6 pt-3 bg-white/40 backdrop-blur-sm border-b border-[#5A5A40]/5 z-20">
         {/* Title Section */}
         <div className="flex items-center justify-between gap-2 md:gap-4">
           <div
             className="flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => setIsEditingInfo(true)}
           >
-            <h1 className="font-sans text-lg md:text-2xl font-bold text-[#1A1A1A] leading-tight truncate md:line-clamp-2">
-              {sequence.title || 'Yoga Sequence'}
-            </h1>
+            {(() => {
+              // 마인드맵 중앙 노드(depth 0, peak-node)명 사용
+              const peakPose = sequence?.name || '';
+              const displayTitle = peakPose 
+                ? `${sequence?.title || 'Yoga Sequence'} - ${peakPose}`
+                : (sequence?.title || 'Yoga Sequence');
+              return (
+                <h1 className="font-sans text-lg md:text-2xl font-bold text-[#1A1A1A] leading-tight truncate md:line-clamp-2">
+                  {displayTitle}
+                </h1>
+              );
+            })()}
             <p className="font-sans text-xs md:text-sm text-[#5A5A40] font-medium mt-0.5 md:mt-1 line-clamp-1 md:line-clamp-2">
               {sequence.description || '시퀀스 설명을 추가하세요.'}
             </p>
           </div>
           
-          {/* View Toggle & Add Button - Center */}
+          {/* Add New Sequence Button */}
           <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
-            <div className="flex items-center gap-1.5 md:gap-2 bg-white/80 backdrop-blur-sm p-1 md:p-1.5 rounded-lg border border-[#5A5A40]/10">
-              <button
-                onClick={() => setView('mindmap')}
-                className={`px-2 md:px-3 py-1.5 md:py-2 rounded-md md:rounded-lg transition-all flex items-center gap-1.5 md:gap-2 font-bold text-xs md:text-sm ${
-                  view === 'mindmap'
-                    ? 'bg-[#5A5A40] text-white shadow-sm'
-                    : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
-                }`}
-                title="MindMap View"
-              >
-                <MapIcon size={14} className="md:w-4 md:h-4" />
-                <span>MindMap</span>
-              </button>
-              <button
-                onClick={() => setView('timeline')}
-                className={`px-2 md:px-3 py-1.5 md:py-2 rounded-md md:rounded-lg transition-all flex items-center gap-1.5 md:gap-2 font-bold text-xs md:text-sm ${
-                  view === 'timeline'
-                    ? 'bg-[#5A5A40] text-white shadow-sm'
-                    : 'text-[#5A5A40] hover:bg-[#F5F2ED]'
-                }`}
-                title="Timeline View"
-              >
-                <Timer size={14} className="md:w-4 md:h-4" />
-                <span>Timeline</span>
-              </button>
-            </div>
-
-            {/* Add New Sequence Button */}
             <motion.button
               onClick={handleAddNewSequence}
               disabled={isSaving}
-              className="w-8 h-8 md:w-10 md:h-10 bg-white/60 hover:bg-white/80 disabled:opacity-50 text-[#5A5A40] rounded-lg shadow-sm border border-[#5A5A40]/20 flex items-center justify-center transition-all"
+              className="w-6 h-6 md:w-10 md:h-10 bg-white/60 hover:bg-white/80 disabled:opacity-50 text-[#5A5A40] rounded-lg shadow-sm border border-[#5A5A40]/20 flex items-center justify-center transition-all"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               title="새 시퀀스 추가"
             >
-              <Plus size={16} className="md:w-5 md:h-5" />
+              <Plus size={14} className="md:w-5 md:h-5" />
             </motion.button>
+
+            {sequence?.children && sequence.children.length > 0 && (
+              <motion.button
+                onClick={() => setClearingAllChildren(true)}
+                className="w-6 h-6 md:w-10 md:h-10 bg-orange-50 hover:bg-orange-100 text-orange-500 rounded-lg shadow-sm border border-orange-200/50 flex items-center justify-center transition-all"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                title="초기화"
+              >
+                <RotateCcw size={14} className="md:w-5 md:h-5" />
+              </motion.button>
+            )}
           </div>
         </div>
 
         {/* Tabs Bar */}
-        <div className="flex items-center gap-1 md:gap-2 overflow-x-auto -mx-3 md:-mx-6 px-3 md:px-6 pb-1">
-          <div className="flex items-center gap-1 md:gap-1.5 flex-nowrap">
+        <div className="flex items-center gap-2 md:gap-3 overflow-x-auto overflow-y-visible -mx-3 md:-mx-6 px-3 md:px-6 py-3">
+          {/* View Toggle Buttons - Hidden on mobile, shown in header on md+ */}
+          <div className="hidden md:flex items-center gap-1 md:gap-1.5 flex-shrink-0 border-r border-[#5A5A40]/10 pr-2 md:pr-3">
+            <button
+              onClick={() => setView('mindmap')}
+              className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md md:rounded-lg text-[10px] md:text-[11px] font-bold transition-all whitespace-nowrap border border-[#5A5A40]/30 flex items-center gap-1 md:gap-1.5 ${
+                view === 'mindmap'
+                  ? 'bg-[#5A5A40]/10 text-[#5A5A40]'
+                  : 'bg-white/30 text-[#5A5A40]/70 hover:bg-white/50'
+              }`}
+              title="MindMap View"
+            >
+              <MapIcon size={12} className="md:w-3.5 md:h-3.5" />
+              <span className="hidden sm:inline">MindMap</span>
+            </button>
+            <button
+              onClick={() => setView('timeline')}
+              className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md md:rounded-lg text-[10px] md:text-[11px] font-bold transition-all whitespace-nowrap border border-[#5A5A40]/30 flex items-center gap-1 md:gap-1.5 ${
+                view === 'timeline'
+                  ? 'bg-[#5A5A40]/10 text-[#5A5A40]'
+                  : 'bg-white/30 text-[#5A5A40]/70 hover:bg-white/50'
+              }`}
+              title="Timeline View"
+            >
+              <Timer size={12} className="md:w-3.5 md:h-3.5" />
+              <span className="hidden sm:inline">Timeline</span>
+            </button>
+          </div>
+
+          {/* Sequence Tabs */}
+          <div className="flex items-start gap-1 md:gap-1.5 flex-nowrap">
             {tabs.map(id => {
               const seq = allSequences[id];
-              const displayLabel = seq?.title || id;
+              const peakPose = seq?.name || '';
+              const rowNum = id.replace('row-', '');
               return (
-                <button
+                <div
                   key={id}
-                  onClick={() => setSelectedId(id)}
-                  className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md md:rounded-lg text-[10px] md:text-[11px] font-bold transition-all whitespace-nowrap ${
-                    selectedId === id
-                      ? 'bg-[#5A5A40] text-white shadow-sm'
-                      : 'bg-white/40 text-[#5A5A40] hover:bg-white/70 border border-[#5A5A40]/10'
-                  }`}
+                  className="group relative"
                 >
-                  {displayLabel}
-                </button>
+                  <button
+                    onClick={() => setSelectedId(id)}
+                    className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md md:rounded-lg text-[10px] md:text-[11px] font-bold transition-all flex flex-col items-center justify-center min-w-fit ${
+                      selectedId === id
+                        ? 'bg-[#5A5A40] text-white shadow-sm'
+                        : 'bg-white/40 text-[#5A5A40] hover:bg-white/70 border border-[#5A5A40]/10'
+                    }`}
+                    title={peakPose ? `${seq?.title} - ${peakPose}` : seq?.title || id}
+                  >
+                    <div className="truncate max-w-[100px]">{seq?.title || 'Sequence'}</div>
+                    {peakPose && <div className="truncate max-w-[100px]">{peakPose}</div>}
+                  </button>
+                  {/* Index Badge - Right Top Corner */}
+                  <div className="absolute -top-1 right-0 w-5 h-5 md:w-6 md:h-6 text-black-500 bg-[#5A5A40]/30 border border-[#5A5A40]/10 rounded-full flex items-center justify-center text-[8px] md:text-[9px] font-bold pointer-events-none">
+                    {rowNum}
+                  </div>
+                  <motion.button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeletingTabId(id);
+                    }}
+                    className="absolute top-8 right-0 opacity-0 group-hover:opacity-100 w-5 h-5 md:w-6 md:h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all transform scale-0 group-hover:scale-100 shadow-md"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    title="시퀀스 삭제"
+                  >
+                    <X size={14} className="md:w-4 md:h-4" />
+                  </motion.button>
+                </div>
               );
             })}
           </div>
@@ -472,6 +621,33 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 relative overflow-hidden">
+        {/* Mobile View Toggle Buttons - Only on mobile */}
+        <div className="md:hidden fixed bottom-6 right-4 z-40 flex items-center gap-1 bg-white/80 backdrop-blur-sm p-1.5 rounded-lg border border-[#5A5A40]/20 shadow-md">
+          <button
+            onClick={() => setView('mindmap')}
+            className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1 ${
+              view === 'mindmap'
+                ? 'bg-[#5A5A40]/10 text-[#5A5A40]'
+                : 'bg-white/30 text-[#5A5A40]/70 hover:bg-white/50'
+            }`}
+            title="MindMap View"
+          >
+            <MapIcon size={12} />
+            <span>지도</span>
+          </button>
+          <button
+            onClick={() => setView('timeline')}
+            className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all flex items-center gap-1 ${
+              view === 'timeline'
+                ? 'bg-[#5A5A40]/10 text-[#5A5A40]'
+                : 'bg-white/30 text-[#5A5A40]/70 hover:bg-white/50'
+            }`}
+            title="Timeline View"
+          >
+            <Timer size={12} />
+            <span>타임라인</span>
+          </button>
+        </div>
         {view === 'mindmap' ? (
           <MindMap
             data={sequence}
@@ -501,8 +677,25 @@ export default function App() {
           />
         )}
 
+        {/* Loading Overlay for Creating Sequence */}
+        <AnimatePresence>
+          {isSaving && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-[#1A1A1A]/40 backdrop-blur-sm flex items-center justify-center z-50"
+            >
+              <div className="flex flex-col items-center gap-3 md:gap-4">
+                <div className="w-10 md:w-12 h-10 md:h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-base md:text-xl font-medium text-white">처리 중입니다...</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Floating Action Buttons */}
-        <div className="absolute bottom-4 md:bottom-6 right-4 md:right-6 z-40 flex items-center gap-1.5 md:gap-2 bg-white/80 backdrop-blur-md p-1.5 md:p-2 rounded-full border border-[#5A5A40]/10 shadow-md">
+        <div className="absolute bottom-4 md:bottom-6 left-4 md:left-6 z-40 flex items-center gap-1.5 md:gap-2 bg-white/80 backdrop-blur-md p-1.5 md:p-2 rounded-full border border-[#5A5A40]/10 shadow-md">
           <motion.button
             onClick={handleCopyJson}
             className="p-2 md:p-2.5 bg-[#5A5A40] hover:bg-[#4A4A30] text-white rounded-full transition-all flex items-center justify-center shadow-sm active:scale-95"
@@ -704,6 +897,88 @@ export default function App() {
                   )}
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Clear All Children Confirmation Modal */}
+      <AnimatePresence>
+        {clearingAllChildren && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1A1A1A]/40 backdrop-blur-sm p-4"
+            onClick={() => setClearingAllChildren(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="w-full max-w-xs bg-white border border-[#5A5A40]/10 rounded-2xl shadow-2xl p-4 md:p-6 text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-10 md:w-12 h-10 md:h-12 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                <RotateCcw size={20} className="md:w-6 md:h-6" />
+              </div>
+              <h3 className="text-sm md:text-base font-bold text-[#1A1A1A] mb-2">노드를 초기화하시겠습니까?</h3>
+              <p className="text-[11px] md:text-xs text-[#1A1A1A]/60 mb-4 md:mb-6">
+                현재 중앙 노드와 모든 자식 노드가 기본값으로 초기화됩니다.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setClearingAllChildren(false)}
+                  className="flex-1 px-3 md:px-4 py-1.5 md:py-2 rounded-xl text-[11px] md:text-xs font-bold text-[#5A5A40] bg-[#F5F2ED] hover:bg-[#EBE8E2] transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={confirmClearAllChildren}
+                  disabled={isSaving}
+                  className="flex-1 px-3 md:px-4 py-1.5 md:py-2 rounded-xl text-[11px] md:text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                >
+                  초기화
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Tab Confirmation Modal */}
+      <AnimatePresence>
+        {deletingTabId && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#1A1A1A]/40 backdrop-blur-sm p-4"
+            onClick={() => setDeletingTabId(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="w-full max-w-xs bg-white border border-[#5A5A40]/10 rounded-2xl shadow-2xl p-4 md:p-6 text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-10 md:w-12 h-10 md:h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-3 md:mb-4">
+                <X size={20} className="md:w-6 md:h-6" />
+              </div>
+              <h3 className="text-sm md:text-base font-bold text-[#1A1A1A] mb-2">시퀀스를 삭제하시겠습니까?</h3>
+              <p className="text-[11px] md:text-xs text-[#1A1A1A]/60 mb-4 md:mb-6">
+                '{allSequences[deletingTabId]?.title}' 시퀀스가 완전히 삭제됩니다. 복구할 수 없습니다.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDeletingTabId(null)}
+                  className="flex-1 px-3 md:px-4 py-1.5 md:py-2 rounded-xl text-[11px] md:text-xs font-bold text-[#5A5A40] bg-[#F5F2ED] hover:bg-[#EBE8E2] transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={confirmDeleteTab}
+                  disabled={isSaving}
+                  className="flex-1 px-3 md:px-4 py-1.5 md:py-2 rounded-xl text-[11px] md:text-xs font-bold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 transition-colors"
+                >
+                  삭제
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

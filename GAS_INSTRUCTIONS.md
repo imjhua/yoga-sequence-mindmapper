@@ -4,6 +4,8 @@
 2. 하단 시트 탭 이름을 `Sequences`로 변경합니다.
 3. 1행부터 바로 데이터를 넣으시면 됩니다. 헤더(json_data 등)가 필요 없습니다.
    - *참고: 이제 1행부터 모든 행을 데이터로 인식하며, 행 번호가 곧 ID가 됩니다.*
+4. [앱스크립트](https://script.google.com/u/0/home/projects/1SVYMqhS0_Ac05zppP-2P-zF-2U4wU_p2rbvbtVFsfMPNO-eNHO6BqfHP/edit)
+5. [구글드라이브](https://drive.google.com/drive/u/0/folders/157sLaJsDSYa7InhHivdPbJAztrXXuyCz)
 
 ### 2단계: Apps Script 코드 작성
 
@@ -45,8 +47,20 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
   
-  const { id, data: jsonData } = params;
+  const { id, data: jsonData, delete: shouldDelete } = params;
   const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+  
+  // DELETE 요청: 행 삭제
+  if (shouldDelete && id && id.startsWith('row-')) {
+    const rowNum = parseInt(id.replace('row-', ''));
+    if (!isNaN(rowNum) && rowNum > 0) {
+      sheet.deleteRow(rowNum);
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  
+  // UPDATE 또는 CREATE 요청
   const jsonString = JSON.stringify(jsonData);
   
   // ID가 'row-X' 형식인 경우 해당 행에 직접 저장

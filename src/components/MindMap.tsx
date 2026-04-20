@@ -33,11 +33,16 @@ const MindMap: React.FC<MindMapProps> = ({
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
 
-  const settings = data.layoutSettings || {
+  const defaultSettings = {
     radiusMultiplier: 1,
     angleSpread: 1,
     rotation: 0,
-    linkStyle: 'curved'
+    linkStyle: 'curved' as const
+  };
+
+  const settings = {
+    ...defaultSettings,
+    ...data.layoutSettings
   };
 
   useEffect(() => {
@@ -603,7 +608,7 @@ const MindMap: React.FC<MindMapProps> = ({
       </AnimatePresence>
       
       {/* Layout Settings Panel */}
-      <div className="absolute top-4 right-20 flex flex-col items-end gap-2">
+      <div className="absolute top-4 right-4 md:right-6 flex flex-col items-end gap-2">
         <button 
           onClick={() => setShowLayoutSettings(!showLayoutSettings)}
           className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all ${
