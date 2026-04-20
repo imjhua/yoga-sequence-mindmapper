@@ -243,6 +243,62 @@ export default function App() {
     if (!sequence) return;
     const parentNode = findNodeById(sequence, parentId);
 
+    // 형제 노드들의 각도와 반지름 수집
+    const siblingAngles: number[] = [];
+    const siblingRadii: number[] = [];
+    if (parentNode?.children) {
+      parentNode.children.forEach(child => {
+        if (child.x !== undefined) {
+          siblingAngles.push(child.x);
+        }
+        if (child.y !== undefined) {
+          siblingRadii.push(child.y);
+        }
+      });
+    }
+
+    // 새 노드의 각도 계산 (형제 노드들 사이의 가장 큰 간격에 배치)
+    let newX: number | undefined;
+    if (parentNode?.x !== undefined) {
+      if (siblingAngles.length === 0) {
+        // 형제 노드가 없으면 부모 각도로부터 PI/3 거리에 배치
+        newX = (parentNode.x + Math.PI / 3) % (2 * Math.PI);
+      } else if (siblingAngles.length === 1) {
+        // 형제 노드가 1개면 반대편에 배치
+        newX = (siblingAngles[0] + Math.PI) % (2 * Math.PI);
+      } else {
+        // 형제 노드들 사이의 가장 큰 간격을 찾기
+        const sortedAngles = [...siblingAngles].sort((a, b) => a - b);
+        let maxGap = 0;
+        let maxGapMidpoint = 0;
+
+        for (let i = 0; i < sortedAngles.length; i++) {
+          const nextIndex = (i + 1) % sortedAngles.length;
+          let gap = sortedAngles[nextIndex] - sortedAngles[i];
+          
+          // 원형이므로 마지막에서 처음으로 가는 간격도 계산
+          if (gap < 0) {
+            gap += 2 * Math.PI;
+          }
+
+          if (gap > maxGap) {
+            maxGap = gap;
+            maxGapMidpoint = (sortedAngles[i] + gap / 2) % (2 * Math.PI);
+          }
+        }
+
+        newX = maxGapMidpoint;
+      }
+    }
+
+    // 형제 노드들의 반지름 평균 계산 (없으면 기본값 160)
+    let newY: number | undefined;
+    if (parentNode?.y !== undefined) {
+      // 부모가 루트(y=0)이면 화면 가운데 정렬(좌법 정도의 거리 142)
+      // 아니면 부모 주변에 배치(부모 거리 + 15)
+      newY = parentNode.y === 0 ? 142 : parentNode.y + 15;
+    }
+
     const newNode: YogaPose = {
       id: `node-${Date.now()}`,
       name: '새로운 자세',
@@ -251,8 +307,8 @@ export default function App() {
       children: [],
       // Set initial position near parent if parent has coordinates
       // x is angle in radians, y is radius in pixels
-      x: parentNode?.x !== undefined ? parentNode.x + 0.2 : undefined,
-      y: parentNode?.y !== undefined ? parentNode.y + 100 : undefined,
+      x: newX,
+      y: newY,
     };
     const updated = addNodeToTree(sequence, parentId, newNode);
     setSequence(updated);
@@ -597,7 +653,7 @@ export default function App() {
                     {peakPose && <div className="truncate max-w-[100px]">{peakPose}</div>}
                   </button>
                   {/* Index Badge - Right Top Corner */}
-                  <div className="absolute -top-1 right-0 w-5 h-5 md:w-6 md:h-6 text-black-500 bg-[#5A5A40]/30 border border-[#5A5A40]/10 rounded-full flex items-center justify-center text-[8px] md:text-[9px] font-bold pointer-events-none">
+                  <div className="absolute -top-1 right-0 w-5 h-5 text-black-500 bg-white border border-[#5A5A40]/30 rounded-full flex items-center justify-center text-[8px] md:text-[9px] font-bold pointer-events-none">
                     {rowNum}
                   </div>
                   <motion.button
@@ -695,7 +751,7 @@ export default function App() {
         </AnimatePresence>
 
         {/* Floating Action Buttons */}
-        <div className="absolute bottom-4 md:bottom-6 left-4 md:left-6 z-40 flex items-center gap-1.5 md:gap-2 bg-white/80 backdrop-blur-md p-1.5 md:p-2 rounded-full border border-[#5A5A40]/10 shadow-md">
+        <div className="absolute bottom-4 left-4 md:left-auto md:right-4 md:bottom-6 z-40 flex items-center gap-1.5 md:gap-2 bg-white/80 backdrop-blur-md p-1.5 md:p-2 rounded-full border border-[#5A5A40]/10 shadow-md">
           <motion.button
             onClick={handleCopyJson}
             className="p-2 md:p-2.5 bg-[#5A5A40] hover:bg-[#4A4A30] text-white rounded-full transition-all flex items-center justify-center shadow-sm active:scale-95"

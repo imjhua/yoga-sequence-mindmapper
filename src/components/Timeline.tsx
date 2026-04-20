@@ -91,7 +91,7 @@ const TimelineItem: React.FC<{
             }`}
           >
             <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-2 min-h-5 sm:min-h-6">
                 {editingField?.id === node.id && editingField.field === 'name' ? (
                   <input
                     autoFocus
@@ -105,9 +105,9 @@ const TimelineItem: React.FC<{
                 ) : (
                   <h3 
                     onClick={(e) => handleFieldClick(e, node, 'name')}
-                    className={`text-xs sm:text-sm font-bold text-[#1A1A1A] truncate hover:bg-[#F5F2ED] rounded px-1 cursor-text ${depth === 2 ? 'text-sm sm:text-base' : ''}`}
+                    className={`text-xs sm:text-sm font-bold truncate hover:bg-[#F5F2ED] rounded px-1 cursor-text min-w-0 flex-1 ${node.name ? 'text-[#1A1A1A]' : 'text-[#1A1A1A]/40'} ${depth === 2 ? 'text-sm sm:text-base' : ''}`}
                   >
-                    {node.name}
+                    {node.name || '제목을 입력하세요...'}
                   </h3>
                 )}
               </div>
