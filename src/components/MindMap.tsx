@@ -295,7 +295,7 @@ const MindMap: React.FC<MindMapProps> = ({
       const el = d3.select(this);
       const fontSize = d.depth === 0 ? 18 : d.depth === 1 ? 14 : 12;
       const charWidth = fontSize * 0.8;
-      const textWidth = Math.max(80, d.data.name.length * charWidth + 40);
+      const textWidth = Math.max(80, d.data.name.length * charWidth + 24);
       const height = d.depth === 0 ? 64 : d.depth === 1 ? 48 : 38;
       const rx = d.depth === 0 ? 32 : d.depth === 1 ? 12 : 6;
       
@@ -331,7 +331,7 @@ const MindMap: React.FC<MindMapProps> = ({
       if (editingNodeId === d.data.id) {
         const fontSize = d.depth === 0 ? 18 : d.depth === 1 ? 14 : 12;
         const charWidth = fontSize * 0.8;
-        const textWidth = Math.max(80, d.data.name.length * charWidth + 40);
+        const textWidth = Math.max(80, d.data.name.length * charWidth + 24);
         
         const input = el.append('foreignObject')
           .attr('x', -textWidth / 2 + 10)

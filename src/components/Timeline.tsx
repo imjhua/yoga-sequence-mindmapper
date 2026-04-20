@@ -19,7 +19,6 @@ const TimelineItem: React.FC<{
   node: YogaPose;
   depth: number;
   data: YogaPose;
-  index: number;
   editingField: { id: string; field: 'name' | 'description' } | null;
   tempValue: string;
   setTempValue: (v: string) => void;
@@ -37,7 +36,7 @@ const TimelineItem: React.FC<{
   handleDurationKeyDown: (e: React.KeyboardEvent, id: string) => void;
   formatTime: (seconds: number) => string;
 }> = ({ 
-  node, depth, data, index, editingField, tempValue, setTempValue, 
+  node, depth, data, editingField, tempValue, setTempValue, 
   handleFieldSubmit, handleFieldKeyDown, handleFieldClick, 
   onAdd, onDelete, onReorder, handleDurationClick, editingDurationId, 
   tempDuration, setTempDuration, handleDurationSubmit, 
@@ -63,31 +62,26 @@ const TimelineItem: React.FC<{
       }}
       className="relative select-none"
     >
-      <div className="flex flex-col">
+      <div className="flex flex-col ml-4">
         <div 
-          className="flex items-center gap-2 sm:gap-4 w-full group"
+          className="flex items-center w-full group"
           style={{ paddingLeft: `${indent}px` }}
         >
-          {/* Marker & Drag Handle */}
+          {/* Drag Handle */}
           <div 
             className="relative z-10 flex items-center gap-1 sm:gap-2 cursor-grab active:cursor-grabbing"
             onPointerDown={(e) => controls.start(e)}
             style={{ touchAction: 'none' }}
           >
-            <div className="opacity-0 group-hover:opacity-40 text-[#5A5A40] p-1">
-              <GripVertical size={12} className="sm:w-[14px] sm:h-[14px]" />
-            </div>
-            <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shadow-sm transition-transform active:scale-95 ${
-              depth === 2 ? 'bg-[#5A5A40] text-white' : 'bg-white text-[#5A5A40] border border-[#5A5A40]/10'
-            }`}>
-              <span className="text-[10px] sm:text-xs font-bold">{index}</span>
+            <div className="opacity-0 group-hover:opacity-40 text-[#5A5A40]">
+              <GripVertical size={32} />
             </div>
           </div>
 
           {/* Content */}
           <div 
-            className={`flex-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl shadow-sm border flex items-center justify-between gap-2 sm:gap-4 ${
-              depth === 2 ? 'bg-white border-[#5A5A40]/20 shadow-md' : 'bg-white/50 border-[#5A5A40]/5 hover:border-[#5A5A40]/20'
+            className={`flex-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg shadow-sm border flex items-center justify-between gap-2 sm:gap-4 ${
+              depth === 2 ? 'bg-white border-l-8 border-l-[#5A5A40] border-[#5A5A40]/10 shadow-md' : 'bg-white/50 border-[#5A5A40]/5 hover:border-[#5A5A40]/20'
             }`}
           >
             <div className="flex-1 min-w-0">
@@ -171,7 +165,6 @@ const TimelineItem: React.FC<{
                   node={child}
                   depth={depth + 1}
                   data={data}
-                  index={idx + 1}
                   editingField={editingField}
                   tempValue={tempValue}
                   setTempValue={setTempValue}
@@ -268,13 +261,12 @@ const Timeline: React.FC<TimelineProps> = ({
             }}
             className="space-y-1.5 md:space-y-2 pb-40 relative z-10"
           >
-            {allCategories.map((child, idx) => (
+            {allCategories.map((child) => (
               <TimelineItem 
                 key={child.id}
                 node={child}
                 depth={2}
                 data={data}
-                index={idx + 1}
                 editingField={editingField}
                 tempValue={tempValue}
                 setTempValue={setTempValue}
