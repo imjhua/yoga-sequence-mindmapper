@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Target, Sparkles, Map as MapIcon, Save, Timer, Code, LayoutGrid, Plus, Edit3, Trash2, RotateCcw } from 'lucide-react';
 import MindMap from './components/MindMap';
+import MindMapTabs from './components/mindmap/MindMapTabs';
 import Timeline from './components/Timeline';
 import FAQ from './components/Memo';
 import { YogaPose, FAQItem, updateNodeInTree, addNodeToTree, deleteNodeFromTree, findNodeById, moveNodeInTree, formatTime, getSequenceStats } from './types';
@@ -439,7 +440,11 @@ export default function App() {
       const numA = parseInt(a.replace('row-', ''));
       const numB = parseInt(b.replace('row-', ''));
       return numA - numB;
-    });
+    }).map(id => ({
+      label: allSequences[id]?.title || 'Sequence',
+      subLabel: allSequences[id]?.name || '',
+      value: id
+    }));
   }, [allSequences]);
 
   if (!dataLoaded) {
@@ -572,50 +577,12 @@ export default function App() {
               <span className="hidden sm:inline">Timeline</span>
             </button>
           </div>
-
-          {/* Sequence Tabs */}
-          <div className="flex items-start gap-1 md:gap-1.5 flex-nowrap">
-            {tabs.map(id => {
-              const seq = allSequences[id];
-              const peakPose = seq?.name || '';
-              const rowNum = id.replace('row-', '');
-              return (
-                <div
-                  key={id}
-                  className="group relative"
-                >
-                  <button
-                    onClick={() => setSelectedId(id)}
-                    className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md md:rounded-lg text-[10px] md:text-[11px] font-bold transition-all flex flex-col items-center justify-center min-w-fit ${
-                      selectedId === id
-                        ? 'bg-[#5A5A40] text-white shadow-sm'
-                        : 'bg-white/40 text-[#5A5A40] hover:bg-white/70 border border-[#5A5A40]/10'
-                    }`}
-                    title={peakPose ? `${seq?.title} - ${peakPose}` : seq?.title || id}
-                  >
-                    <div className="truncate max-w-[100px]">{seq?.title || 'Sequence'}</div>
-                    {peakPose && <div className="truncate max-w-[100px]">{peakPose}</div>}
-                  </button>
-                  {/* Index Badge - Right Top Corner */}
-                  <div className="absolute -top-1 right-0 w-5 h-5 text-black-500 bg-white border border-[#5A5A40]/30 rounded-full flex items-center justify-center text-[8px] md:text-[9px] font-bold pointer-events-none">
-                    {rowNum}
-                  </div>
-                  <motion.button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDeletingTabId(id);
-                    }}
-                    className="absolute top-8 right-0 opacity-0 group-hover:opacity-100 w-5 h-5 md:w-6 md:h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all transform scale-0 group-hover:scale-100 shadow-md"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    title="시퀀스 삭제"
-                  >
-                    <X size={14} className="md:w-4 md:h-4" />
-                  </motion.button>
-                </div>
-              );
-            })}
-          </div>
+          {/* Sequence Tabs - 분리된 컴포넌트 사용 */}
+          <MindMapTabs
+            activeTab={selectedId}
+            onTabChange={setSelectedId}
+            tabs={tabs}
+          />
         </div>
       </header>
 

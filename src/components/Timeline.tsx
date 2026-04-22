@@ -127,6 +127,31 @@ const TimelineItem: React.FC<{
             </div>
             
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              {/* Duration - depth 2 (뎁스1)인 노드만 표시 */}
+              {depth === 2 && (
+                <div 
+                  onClick={(e) => { e.stopPropagation(); handleDurationClick(node); }}
+                  className="flex items-center gap-1 px-2 py-1 bg-[#5A5A40]/10 rounded-md cursor-pointer hover:bg-[#5A5A40]/20"
+                >
+                  <Timer size={12} className="text-[#5A5A40]" />
+                  {editingDurationId === node.id ? (
+                    <input
+                      autoFocus
+                      type="number"
+                      value={tempDuration}
+                      onChange={(e) => setTempDuration(e.target.value)}
+                      onBlur={() => handleDurationSubmit(node.id)}
+                      onKeyDown={(e) => handleDurationKeyDown(e, node.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-12 text-xs font-medium text-[#5A5A40] bg-transparent border-none outline-none"
+                    />
+                  ) : (
+                    <span className="text-xs font-medium text-[#5A5A40]">
+                      {formatTime(node.duration || 0)}
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="flex items-center gap-0.5 sm:gap-1">
                 <button 
                   onClick={(e) => { e.stopPropagation(); onAdd(node.id); }}
